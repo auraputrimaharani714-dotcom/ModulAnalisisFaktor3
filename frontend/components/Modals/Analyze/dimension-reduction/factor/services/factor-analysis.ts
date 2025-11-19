@@ -198,15 +198,18 @@ function performAnalysisWithWorker(
  */
 export async function analyzeFactor({
     configData,
-    dataVariables, // Ini diasumsikan data mentah penuh (Array<Array<string | number>>)
+    dataVariables,
     variables,
 }: FactorAnalysisType) {
     try {
         const targetVariables = configData.main.TargetVar || [];
 
         if (!targetVariables || targetVariables.length === 0) {
-            console.error("No variables selected for factor analysis");
-            return;
+            throw new Error("No variables selected for factor analysis");
+        }
+
+        if (!dataVariables || dataVariables.length === 0) {
+            throw new Error("No data available for factor analysis");
         }
 
         // Build map of variable names to their column indices
@@ -217,12 +220,18 @@ export async function analyzeFactor({
             }
         });
 
+        // Verify all target variables have valid column indices
+        const missingVariables = targetVariables.filter(v => !columnIndexMap.has(v));
+        if (missingVariables.length > 0) {
+            throw new Error(`Variables not found: ${missingVariables.join(", ")}`);
+        }
+
         // Initialize array to store data in Variables x Samples format
         // Format: [ [VAR1_sample1, VAR1_sample2, ...], [VAR2_sample1, VAR2_sample2, ...] ]
         const slicedDataForTarget: number[][] = targetVariables.map(() => []);
 
         // Iterate through all data rows and extract values for target variables
-        // This ensures we capture all samples and proper data shape
+        // This ensures we capture all samples with proper data shape
         dataVariables.forEach((row) => {
             targetVariables.forEach((varName, varIndex) => {
                 const colIndex = columnIndexMap.get(varName);
@@ -234,7 +243,7 @@ export async function analyzeFactor({
                     let numericValue: number;
 
                     if (rawValue === null || rawValue === undefined || rawValue === "") {
-                        numericValue = NaN; // Null/empty becomes NaN
+                        numericValue = NaN; // Null/empty becomes NaN, worker will handle it
                     } else if (typeof rawValue === 'number') {
                         numericValue = rawValue;
                     } else {
@@ -243,24 +252,35 @@ export async function analyzeFactor({
                         numericValue = parseFloat(stringValue.replace(",", "."));
                     }
 
-                    // Push value even if NaN - the worker will handle missing values during calculation
+                    // Push value even if NaN - the worker will handle missing values
                     slicedDataForTarget[varIndex].push(numericValue);
+                } else {
+                    // If column doesn't exist for this row, add NaN
+                    slicedDataForTarget[varIndex].push(NaN);
                 }
             });
         });
 
-        // Debug log (can be uncommented to verify data structure)
-        // console.log("Data sent to factor analysis worker:", {
-        //     variables: targetVariables,
-        //     shape: {
-        //         variables: slicedDataForTarget.length,
-        //         samples: slicedDataForTarget[0]?.length || 0,
-        //     },
-        //     data: slicedDataForTarget
-        // });
+        // Validate that we have samples
+        const sampleCount = slicedDataForTarget[0]?.length || 0;
+        if (sampleCount === 0) {
+            throw new Error("No data samples could be extracted for the selected variables");
+        }
+
+        // Log data structure for debugging (can be uncommented in browser console)
+        if (typeof window !== 'undefined') {
+            (window as any).lastFactorAnalysisData = {
+                variables: targetVariables,
+                shape: {
+                    variables: slicedDataForTarget.length,
+                    samples: sampleCount,
+                },
+                data: slicedDataForTarget
+            };
+        }
 
         const results = await performAnalysisWithWorker(
-            slicedDataForTarget, // Menggunakan data yang sudah diformat dengan sampel > 1
+            slicedDataForTarget,
             targetVariables,
             configData
         );
