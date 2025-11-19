@@ -11,6 +11,7 @@ const nextConfig = {
         '127.0.0.1',
         '*.fly.dev',
         '*.builder.codes',
+        'c350229c13f84ae7a41cd6c2bbf50f24-c1cbf6f7ad97404492f69e772.projects.builder.codes',
     ],
     webpack: (config, { isServer }) => {
         if (!isServer) {
