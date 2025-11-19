@@ -63,6 +63,7 @@ export const isTransformModal = (type: ModalType): boolean => {
     ModalType.RecodeSameVariables,
     ModalType.RecodeDifferentVariables,
     ModalType.ComputeVariable,
+    ModalType.RankCases,
     // Add more transform types as they are added
   ].includes(type);
 };
