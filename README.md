@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Load Testing with k6
 
 This directory contains load tests for the Statify SPSS application using k6.
@@ -72,3 +73,7 @@ You can modify the test scripts to:
 5. Add new metrics
 
 For more information about k6 scripting, visit [https://k6.io/docs/](https://k6.io/docs/)
+=======
+# ModulAnalisisFaktor2
+Modul 2 dari Analisis Faktor
+>>>>>>> bf147b7f00d9cafd56a02ede3e8ef5954f0cf709
