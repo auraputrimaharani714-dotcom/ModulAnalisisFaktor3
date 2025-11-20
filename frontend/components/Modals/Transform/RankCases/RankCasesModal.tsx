@@ -137,7 +137,7 @@ const RankCasesModal: React.FC<RankCasesModalProps> = ({
     (v) => !selectedVariables.includes(v.name) && !byVariables.includes(v.name)
   );
 
-  const isOKEnabled = selectedVariables.length > 0 && byVariables.length > 0;
+  const isOKEnabled = selectedVariables.length > 0;
 
   const handleOK = () => {
     if (!isOKEnabled) {
