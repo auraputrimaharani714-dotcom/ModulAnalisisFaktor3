@@ -497,14 +497,14 @@ const RankCasesModal: React.FC<RankCasesModalProps> = ({
         <DialogFooter className="flex gap-2 justify-end border-t pt-4">
           <Button
             onClick={handleOK}
-            disabled={!isOKEnabled}
+            disabled={!isOKEnabled || isProcessing}
             className={
-              isOKEnabled
+              isOKEnabled && !isProcessing
                 ? "bg-gray-400 hover:bg-gray-500"
                 : "bg-gray-300 cursor-not-allowed"
             }
           >
-            OK
+            {isProcessing ? "Processing..." : "OK"}
           </Button>
           <Button
             variant="outline"
