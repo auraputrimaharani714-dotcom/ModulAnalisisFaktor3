@@ -137,16 +137,15 @@ const RankCasesModal: React.FC<RankCasesModalProps> = ({
     (v) => !selectedVariables.includes(v.name) && !byVariables.includes(v.name)
   );
 
-  const isOKEnabled = selectedVariables.length > 0 && byVariables.length > 0;
+  const isOKEnabled = selectedVariables.length > 0;
 
   const handleOK = () => {
     if (!isOKEnabled) {
-      toast.error("Please select variables for both Variable(s) and By");
+      toast.error("Please select at least one variable");
       return;
     }
-    toast.success(
-      `Ranking ${selectedVariables.length} variable(s) grouped by ${byVariables.length} variable(s)`
-    );
+    const byInfo = byVariables.length > 0 ? ` grouped by ${byVariables.length} variable(s)` : "";
+    toast.success(`Ranking ${selectedVariables.length} variable(s)${byInfo}`);
     onClose();
   };
 
