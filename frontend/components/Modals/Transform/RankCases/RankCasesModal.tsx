@@ -161,7 +161,7 @@ const RankCasesModal: React.FC<RankCasesModalProps> = ({
       // Create a copy of data to modify
       let updatedData = data.map(row => [...row]);
       const headers = updatedData[0];
-      const newVariables: Variable[] = [];
+      let nextColumnIndex = headers.length;
 
       // Process each selected variable
       for (const varName of selectedVariables) {
@@ -178,7 +178,6 @@ const RankCasesModal: React.FC<RankCasesModalProps> = ({
 
         // Create new variable for ranked values
         const newVarName = `R${varName}`;
-        const newColumnIndex = headers.length;
 
         // Add header
         headers.push(newVarName);
@@ -189,36 +188,29 @@ const RankCasesModal: React.FC<RankCasesModalProps> = ({
           row.push(rankedValues[idx - 1]);
         });
 
-        // Create new variable metadata
-        const newVariable: Variable = {
-          tempId: `temp_${Date.now()}_${Math.random()}`,
-          columnIndex: newColumnIndex,
+        // Add variable to store
+        await addVariable({
+          columnIndex: nextColumnIndex,
           name: newVarName,
           type: "NUMERIC",
           width: 8,
           decimals: 2,
           label: `Rank of ${varName}`,
-          values: [],
-          missing: null,
-          columns: 64,
-          align: "right",
           measure: "ordinal",
           role: "output"
-        };
+        });
 
-        newVariables.push(newVariable);
+        nextColumnIndex++;
       }
 
-      // Update data store
+      // Update data store with all new columns
       setData(updatedData);
 
-      // Add new variables to variable store
-      for (const newVar of newVariables) {
-        addVariable(newVar);
-      }
+      // Save the data changes
+      await useDataStore.getState().saveData();
 
       toast.success(
-        `Ranking completed for ${selectedVariables.length} variable(s). New variable(s): ${newVariables.map(v => v.name).join(", ")}`
+        `Ranking completed for ${selectedVariables.length} variable(s).`
       );
       onClose();
     } catch (error: any) {
