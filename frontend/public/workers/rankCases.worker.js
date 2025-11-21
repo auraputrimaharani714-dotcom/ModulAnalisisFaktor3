@@ -47,14 +47,11 @@ self.onmessage = function(e) {
 
 /**
  * Calculate ranks for a variable with tie handling
+ * All rows in the data array are treated as data rows (no separate header row)
  */
 function calculateRanks(data, variableColumnIndex, rankDirection, tieHandling) {
-    // Extract headers and data rows
-    const headers = data[0];
-    const dataRows = data.slice(1);
-    
-    // Create array of {index, value}
-    const valueIndices = dataRows
+    // Treat all rows as data rows (no header row assumption)
+    const valueIndices = data
         .map((row, idx) => {
             const value = row[variableColumnIndex];
             // Parse numeric value
