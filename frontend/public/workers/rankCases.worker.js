@@ -71,9 +71,9 @@ function calculateRanks(data, variableColumnIndex, rankDirection, tieHandling) {
     } else {
         sortedValues.sort((a, b) => a.value - b.value);
     }
-    
-    // Initialize ranks array with null for all rows
-    const ranks = new Array(dataRows.length).fill(null);
+
+    // Initialize ranks array with null for all data rows
+    const ranks = new Array(data.length).fill(null);
     
     // Calculate ranks with tie handling
     let i = 0;
