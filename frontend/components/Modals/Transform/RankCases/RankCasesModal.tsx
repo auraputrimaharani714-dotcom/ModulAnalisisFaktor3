@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import { v4 as uuidv4 } from "uuid";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import { useVariableStore } from "@/stores/useVariableStore";
 import { useDataStore } from "@/stores/useDataStore";
 import { Variable } from "@/types/Variable";
 import { ArrowRightIcon } from "lucide-react";
+import createWorkerClient from "@/utils/workerClient";
 import RankTypesDialog, { RankTypesState } from "./RankTypesDialog";
 import TiesDialog, { TieHandling } from "./TiesDialog";
 
@@ -31,7 +33,10 @@ const RankCasesModal: React.FC<RankCasesModalProps> = ({
   containerType = "dialog",
 }) => {
   const variables = useVariableStore((state) => state.variables);
+  const setVariables = useVariableStore((state) => state.setVariables);
   const data = useDataStore((state) => state.data);
+  const setData = useDataStore((state) => state.setData);
+  const saveData = useDataStore((state) => state.saveData);
 
   const [selectedVariables, setSelectedVariables] = useState<string[]>([]);
   const [byVariables, setByVariables] = useState<string[]>([]);
@@ -56,6 +61,7 @@ const RankCasesModal: React.FC<RankCasesModalProps> = ({
   });
   const [tiesOpen, setTiesOpen] = useState(false);
   const [tieHandling, setTieHandling] = useState<TieHandling>("mean");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleDragStart = useCallback(
     (e: React.DragEvent<HTMLDivElement>, variable: string, source: "list" | "selected" | "by") => {
@@ -139,14 +145,147 @@ const RankCasesModal: React.FC<RankCasesModalProps> = ({
 
   const isOKEnabled = selectedVariables.length > 0;
 
-  const handleOK = () => {
+  const processRanking = async () => {
     if (!isOKEnabled) {
       toast.error("Please select at least one variable");
       return;
     }
-    const byInfo = byVariables.length > 0 ? ` grouped by ${byVariables.length} variable(s)` : "";
-    toast.success(`Ranking ${selectedVariables.length} variable(s)${byInfo}`);
-    onClose();
+
+    setIsProcessing(true);
+    try {
+      // Only process if "Rank" type is selected
+      if (!rankTypesState.rank) {
+        toast.error("Please select 'Rank' option in Rank Types");
+        setIsProcessing(false);
+        return;
+      }
+
+      // Create a copy of data to modify
+      let updatedData = data.map(row => [...row]);
+      const headers = updatedData[0];
+      const newVariables: Variable[] = [];
+      let nextColumnIndex = headers.length;
+
+      // Process each selected variable
+      for (const varName of selectedVariables) {
+        const variable = variables.find(v => v.name === varName);
+        if (!variable) continue;
+
+        // Calculate ranks using worker
+        const rankedValues = await calculateRanksWithWorker(
+          updatedData,
+          variable.columnIndex,
+          assignRankTo,
+          tieHandling
+        );
+
+        // Create new variable for ranked values
+        const newVarName = `R${varName}`;
+
+        // Add header
+        headers.push(newVarName);
+
+        // Add ranked values to data
+        updatedData.forEach((row, idx) => {
+          if (idx === 0) return; // Skip header row
+          row.push(rankedValues[idx - 1]);
+        });
+
+        // Create new variable metadata
+        const newVariable: Variable = {
+          tempId: uuidv4(),
+          columnIndex: nextColumnIndex,
+          name: newVarName,
+          type: "NUMERIC",
+          width: 8,
+          decimals: 2,
+          label: `Rank of ${varName}`,
+          values: [],
+          missing: null,
+          columns: 64,
+          align: "right",
+          measure: "ordinal",
+          role: "output"
+        };
+
+        newVariables.push(newVariable);
+        nextColumnIndex++;
+      }
+
+      // Update data store with all new columns
+      setData(updatedData);
+
+      // Add new variables to the variable store
+      const updatedVariables = [...variables, ...newVariables];
+      setVariables(updatedVariables);
+
+      // Save the data changes
+      await saveData();
+
+      toast.success(
+        `Ranking completed for ${selectedVariables.length} variable(s). New variable(s): ${newVariables.map(v => v.name).join(", ")}`
+      );
+      onClose();
+    } catch (error: any) {
+      console.error("Ranking error:", error);
+      toast.error(`Ranking failed: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const calculateRanksWithWorker = (
+    data: any[][],
+    columnIndex: number,
+    rankDirection: "largest" | "smallest",
+    tieHandling: TieHandling
+  ): Promise<(number | null)[]> => {
+    return new Promise((resolve, reject) => {
+      try {
+        const worker = createWorkerClient<
+          {
+            data: any[][];
+            variableColumnIndex: number;
+            rankDirection: "largest" | "smallest";
+            tieHandling: TieHandling;
+            variableName: string;
+          },
+          {
+            success: boolean;
+            rankedValues?: (number | null)[];
+            error?: string;
+          }
+        >("/workers/rankCases.worker.js");
+
+        worker.onMessage((result) => {
+          worker.terminate();
+          if (result.success && result.rankedValues) {
+            resolve(result.rankedValues);
+          } else {
+            reject(new Error(result.error || "Worker returned error"));
+          }
+        });
+
+        worker.onError((error) => {
+          worker.terminate();
+          reject(new Error(`Worker error: ${error.message}`));
+        });
+
+        worker.post({
+          data,
+          variableColumnIndex: columnIndex,
+          rankDirection,
+          tieHandling,
+          variableName: "temp"
+        });
+      } catch (error: any) {
+        reject(error);
+      }
+    });
+  };
+
+  const handleOK = () => {
+    processRanking();
   };
 
   const handleReset = () => {
@@ -363,14 +502,14 @@ const RankCasesModal: React.FC<RankCasesModalProps> = ({
         <DialogFooter className="flex gap-2 justify-end border-t pt-4">
           <Button
             onClick={handleOK}
-            disabled={!isOKEnabled}
+            disabled={!isOKEnabled || isProcessing}
             className={
-              isOKEnabled
+              isOKEnabled && !isProcessing
                 ? "bg-gray-400 hover:bg-gray-500"
                 : "bg-gray-300 cursor-not-allowed"
             }
           >
-            OK
+            {isProcessing ? "Processing..." : "OK"}
           </Button>
           <Button
             variant="outline"
