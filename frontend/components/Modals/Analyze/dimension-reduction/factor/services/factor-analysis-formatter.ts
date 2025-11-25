@@ -1,5 +1,5 @@
 // factor-analysis-formatter.ts
-import {formatDisplayNumber, formatCorrelationValue} from "@/hooks/useFormatter";
+import {formatDisplayNumber} from "@/hooks/useFormatter";
 import {ResultJson, Table} from "@/types/Table";
 
 export function transformFactorAnalysisResult(data: any): ResultJson {
@@ -21,7 +21,7 @@ export function transformFactorAnalysisResult(data: any): ResultJson {
             rows: [],
         };
 
-        data.descriptive_statistics.forEach((stat: any) => {
+        data.descriptive_statistics.forEach((stat: any, index: number) => {
             table.rows.push({
                 rowHeader: [stat.variable],
                 mean: formatDisplayNumber(stat.mean),
@@ -44,9 +44,9 @@ export function transformFactorAnalysisResult(data: any): ResultJson {
             title: "Correlation Matrix",
             columnHeaders: [
                 { header: "", key: "var" },
-                ...variables.map((variable: string) => ({
+                ...variables.map((variable: string, index: number) => ({
                     header: variable,
-                    key: `var_${variable}`,
+                    key: `var_${index}`,
                 })),
             ],
             rows: [],
@@ -59,15 +59,38 @@ export function transformFactorAnalysisResult(data: any): ResultJson {
                     rowHeader: [entry.variable],
                 };
 
-                entry.values.forEach((val: any) => {
-                    rowData[`var_${val.variable}`] = formatCorrelationValue(
-                        val.value
-                    );
+                entry.values.forEach((val: any, colIndex: number) => {
+                    rowData[`var_${colIndex}`] = formatDisplayNumber(val.value);
                 });
 
                 table.rows.push(rowData);
             }
         );
+
+        // Significance values
+        if (
+            data.correlation_matrix.sig_values &&
+            data.correlation_matrix.sig_values.length
+        ) {
+            const sigHeader = { header: "Sig. (1-tailed)", key: "sig_header" };
+            table.columnHeaders[0] = sigHeader;
+
+            data.correlation_matrix.sig_values.forEach(
+                (entry: any, rowIndex: number) => {
+                    const rowData: any = {
+                        rowHeader: [entry.variable],
+                    };
+
+                    entry.values.forEach((val: any, colIndex: number) => {
+                        rowData[`var_${colIndex}`] = formatDisplayNumber(
+                            val.value
+                        );
+                    });
+
+                    table.rows.push(rowData);
+                }
+            );
+        }
 
         resultJson.tables.push(table);
     }
@@ -99,7 +122,7 @@ export function transformFactorAnalysisResult(data: any): ResultJson {
                 };
 
                 entry.values.forEach((val: any, colIndex: number) => {
-                    rowData[`var_${colIndex}`] = formatCorrelationValue(val.value);
+                    rowData[`var_${colIndex}`] = formatDisplayNumber(val.value);
                 });
 
                 table.rows.push(rowData);
@@ -229,39 +252,28 @@ export function transformFactorAnalysisResult(data: any): ResultJson {
             rows: [],
         };
 
-        // Handle both old format (with extraction) and new format (initial only)
-        if (data.communalities.initial && data.communalities.extraction) {
-            const variables = new Set([
-                ...data.communalities.initial.map((item: any) => item.variable),
-                ...data.communalities.extraction.map((item: any) => item.variable),
-            ]);
+        // Combine initial and extraction values for each variable
+        const variables = new Set([
+            ...data.communalities.initial.map((item: any) => item.variable),
+            ...data.communalities.extraction.map((item: any) => item.variable),
+        ]);
 
-            Array.from(variables).forEach((variable) => {
-                const initial = data.communalities.initial.find(
-                    (item: any) => item.variable === variable
-                );
-                const extraction = data.communalities.extraction.find(
-                    (item: any) => item.variable === variable
-                );
+        Array.from(variables).forEach((variable) => {
+            const initial = data.communalities.initial.find(
+                (item: any) => item.variable === variable
+            );
+            const extraction = data.communalities.extraction.find(
+                (item: any) => item.variable === variable
+            );
 
-                table.rows.push({
-                    rowHeader: [variable],
-                    initial: formatDisplayNumber(initial ? initial.value : null),
-                    extraction: formatDisplayNumber(
-                        extraction ? extraction.value : null
-                    ),
-                });
+            table.rows.push({
+                rowHeader: [variable],
+                initial: formatDisplayNumber(initial ? initial.value : null),
+                extraction: formatDisplayNumber(
+                    extraction ? extraction.value : null
+                ),
             });
-        } else if (data.communalities.initial) {
-            // PCA format with only initial communalities
-            data.communalities.initial.forEach((item: any) => {
-                table.rows.push({
-                    rowHeader: [item.variable],
-                    initial: formatDisplayNumber(item.value),
-                    extraction: formatDisplayNumber(item.value),
-                });
-            });
-        }
+        });
 
         // Add extraction method note
         table.rows.push({
@@ -275,187 +287,107 @@ export function transformFactorAnalysisResult(data: any): ResultJson {
 
     // 7. Total Variance Explained
     if (data.total_variance_explained) {
-        // Check if it's the simplified PCA format (just components, eigenvalues, variance_percent, cumulative_percent)
-        if (data.total_variance_explained.components &&
-            data.total_variance_explained.eigenvalues &&
-            Array.isArray(data.total_variance_explained.eigenvalues)) {
-            // Simplified PCA format
-            const table: Table = {
-                key: "total_variance_explained",
-                title: "Total Variance Explained",
-                columnHeaders: [
-                    { header: "Component", key: "component" },
-                    { header: "Total", key: "total" },
-                    { header: "% of Variance", key: "percent_variance" },
-                    { header: "Cumulative %", key: "cumulative_percent" },
-                ],
-                rows: [],
-            };
-
-            const components = data.total_variance_explained.components;
-            const eigenvalues = data.total_variance_explained.eigenvalues;
-            const variancePercent = data.total_variance_explained.variance_percent;
-            const cumulativePercent = data.total_variance_explained.cumulative_percent;
-
-            for (let i = 0; i < components.length; i++) {
-                table.rows.push({
-                    rowHeader: [components[i].toString()],
-                    total: formatDisplayNumber(eigenvalues[i]),
-                    percent_variance: formatDisplayNumber(variancePercent[i]),
-                    cumulative_percent: formatDisplayNumber(cumulativePercent[i]),
-                });
-            }
-
-            // Add extraction method note
-            table.rows.push({
-                rowHeader: ["Extraction Method: Principal Component Analysis."],
-                total: null,
-                percent_variance: null,
-                cumulative_percent: null,
-            });
-
-            resultJson.tables.push(table);
-        } else if (data.total_variance_explained.initial_eigenvalues) {
-            // Complex format with extraction and rotation
-            const table: Table = {
-                key: "total_variance_explained",
-                title: "Total Variance Explained",
-                columnHeaders: [
-                    { header: "Component", key: "component" },
-                    {
-                        header: "Initial Eigenvalues",
-                        key: "initial_eigenvalues",
-                        children: [
-                            { header: "Total", key: "initial_total" },
-                            { header: "% of Variance", key: "initial_percent" },
-                            { header: "Cumulative %", key: "initial_cumulative" },
-                        ],
-                    },
-                    {
-                        header: "Extraction Sums of Squared Loadings",
-                        key: "extraction_sums",
-                        children: [
-                            { header: "Total", key: "extraction_total" },
-                            { header: "% of Variance", key: "extraction_percent" },
-                            {
-                                header: "Cumulative %",
-                                key: "extraction_cumulative",
-                            },
-                        ],
-                    },
-                    {
-                        header: "Rotation Sums of Squared Loadings",
-                        key: "rotation_sums",
-                        children: [
-                            { header: "Total", key: "rotation_total" },
-                            { header: "% of Variance", key: "rotation_percent" },
-                            { header: "Cumulative %", key: "rotation_cumulative" },
-                        ],
-                    },
-                ],
-                rows: [],
-            };
-
-            // Determine how many components there are
-            const totalComponents =
-                data.total_variance_explained.initial_eigenvalues.length;
-            const extractedComponents =
-                data.total_variance_explained.extraction_sums?.length || 0;
-            const rotatedComponents =
-                data.total_variance_explained.rotation_sums?.length || 0;
-
-            for (let i = 0; i < totalComponents; i++) {
-                const initialEigenvalue =
-                    data.total_variance_explained.initial_eigenvalues[i];
-                const extractionSum =
-                    i < extractedComponents
-                        ? data.total_variance_explained.extraction_sums[i]
-                        : null;
-                const rotationSum =
-                    i < rotatedComponents
-                        ? data.total_variance_explained.rotation_sums[i]
-                        : null;
-
-                const rowData: any = {
-                    rowHeader: [(i + 1).toString()],
-                    initial_total: formatDisplayNumber(initialEigenvalue.total),
-                    initial_percent: formatDisplayNumber(
-                        initialEigenvalue.percent_of_variance
-                    ),
-                    initial_cumulative: formatDisplayNumber(
-                        initialEigenvalue.cumulative_percent
-                    ),
-                };
-
-                if (extractionSum) {
-                    rowData.extraction_total = formatDisplayNumber(
-                        extractionSum.total
-                    );
-                    rowData.extraction_percent = formatDisplayNumber(
-                        extractionSum.percent_of_variance
-                    );
-                    rowData.extraction_cumulative = formatDisplayNumber(
-                        extractionSum.cumulative_percent
-                    );
-                }
-
-                if (rotationSum) {
-                    rowData.rotation_total = formatDisplayNumber(rotationSum.total);
-                    rowData.rotation_percent = formatDisplayNumber(
-                        rotationSum.percent_of_variance
-                    );
-                    rowData.rotation_cumulative = formatDisplayNumber(
-                        rotationSum.cumulative_percent
-                    );
-                }
-
-                table.rows.push(rowData);
-            }
-
-            // Add extraction method note
-            table.rows.push({
-                rowHeader: ["Extraction Method: Principal Component Analysis."],
-            });
-
-            resultJson.tables.push(table);
-        }
-    }
-
-    // 7b. Scree Plot (add after Total Variance Explained)
-    if (data.scree_plot) {
-        const chartData = {
-            chartType: "line",
-            chartData: data.scree_plot.components.map((component: number, index: number) => ({
-                component: `${component}`,
-                eigenvalue: data.scree_plot.eigenvalues[index],
-            })),
-            chartConfig: {
-                width: 600,
-                height: 400,
-                useAxis: true,
-                useLegend: false,
-                axisLabels: {
-                    x: "Component Number",
-                    y: "Eigenvalue",
+        const table: Table = {
+            key: "total_variance_explained",
+            title: "Total Variance Explained",
+            columnHeaders: [
+                { header: "Component", key: "component" },
+                {
+                    header: "Initial Eigenvalues",
+                    key: "initial_eigenvalues",
+                    children: [
+                        { header: "Total", key: "initial_total" },
+                        { header: "% of Variance", key: "initial_percent" },
+                        { header: "Cumulative %", key: "initial_cumulative" },
+                    ],
                 },
-            },
-            chartMetadata: {
-                axisInfo: {
-                    x: "Component Number",
-                    y: "Eigenvalue",
-                    category: "component",
+                {
+                    header: "Extraction Sums of Squared Loadings",
+                    key: "extraction_sums",
+                    children: [
+                        { header: "Total", key: "extraction_total" },
+                        { header: "% of Variance", key: "extraction_percent" },
+                        {
+                            header: "Cumulative %",
+                            key: "extraction_cumulative",
+                        },
+                    ],
                 },
-                description: "Scree Plot of Eigenvalues",
-                title: "Scree Plot",
-                subtitle: "Principal Component Analysis",
-                notes: "Shows eigenvalues for each component",
-            },
+                {
+                    header: "Rotation Sums of Squared Loadings",
+                    key: "rotation_sums",
+                    children: [
+                        { header: "Total", key: "rotation_total" },
+                        { header: "% of Variance", key: "rotation_percent" },
+                        { header: "Cumulative %", key: "rotation_cumulative" },
+                    ],
+                },
+            ],
+            rows: [],
         };
 
-        if (!resultJson.charts) {
-            resultJson.charts = [];
+        // Determine how many components there are
+        const totalComponents =
+            data.total_variance_explained.initial_eigenvalues.length;
+        const extractedComponents =
+            data.total_variance_explained.extraction_sums.length;
+        const rotatedComponents =
+            data.total_variance_explained.rotation_sums?.length || 0;
+
+        for (let i = 0; i < totalComponents; i++) {
+            const initialEigenvalue =
+                data.total_variance_explained.initial_eigenvalues[i];
+            const extractionSum =
+                i < extractedComponents
+                    ? data.total_variance_explained.extraction_sums[i]
+                    : null;
+            const rotationSum =
+                i < rotatedComponents
+                    ? data.total_variance_explained.rotation_sums[i]
+                    : null;
+
+            const rowData: any = {
+                rowHeader: [(i + 1).toString()],
+                initial_total: formatDisplayNumber(initialEigenvalue.total),
+                initial_percent: formatDisplayNumber(
+                    initialEigenvalue.percent_of_variance
+                ),
+                initial_cumulative: formatDisplayNumber(
+                    initialEigenvalue.cumulative_percent
+                ),
+            };
+
+            if (extractionSum) {
+                rowData.extraction_total = formatDisplayNumber(
+                    extractionSum.total
+                );
+                rowData.extraction_percent = formatDisplayNumber(
+                    extractionSum.percent_of_variance
+                );
+                rowData.extraction_cumulative = formatDisplayNumber(
+                    extractionSum.cumulative_percent
+                );
+            }
+
+            if (rotationSum) {
+                rowData.rotation_total = formatDisplayNumber(rotationSum.total);
+                rowData.rotation_percent = formatDisplayNumber(
+                    rotationSum.percent_of_variance
+                );
+                rowData.rotation_cumulative = formatDisplayNumber(
+                    rotationSum.cumulative_percent
+                );
+            }
+
+            table.rows.push(rowData);
         }
-        resultJson.charts.push(chartData);
+
+        // Add extraction method note
+        table.rows.push({
+            rowHeader: ["Extraction Method: Principal Component Analysis."],
+        });
+
+        resultJson.tables.push(table);
     }
 
     // 8. Component Matrix
@@ -483,26 +415,17 @@ export function transformFactorAnalysisResult(data: any): ResultJson {
             rows: [],
         };
 
-        if (Array.isArray(data.component_matrix.components)) {
-            data.component_matrix.components.forEach((variable_data: any) => {
-                const rowData: any = {
-                    rowHeader: [variable_data.variable],
-                };
+        data.component_matrix.components.forEach((component: any) => {
+            const rowData: any = {
+                rowHeader: [component.variable],
+            };
 
-                if (Array.isArray(variable_data.values)) {
-                    variable_data.values.forEach((value: number, index: number) => {
-                        rowData[`component_${index + 1}`] = formatDisplayNumber(value);
-                    });
-                } else if (variable_data.values && typeof variable_data.values === 'object') {
-                    // Handle case where values is an object with component keys
-                    Object.entries(variable_data.values).forEach(([key, value]: [string, any]) => {
-                        rowData[key] = formatDisplayNumber(value);
-                    });
-                }
-
-                table.rows.push(rowData);
+            component.values.forEach((value: number, index: number) => {
+                rowData[`component_${index + 1}`] = formatDisplayNumber(value);
             });
-        }
+
+            table.rows.push(rowData);
+        });
 
         // Add footnote
         table.rows.push({
@@ -799,10 +722,9 @@ export function transformFactorAnalysisResult(data: any): ResultJson {
             rows: [],
         };
 
-        const components = data.scree_plot.components || data.scree_plot.component_numbers || [];
-        for (let i = 0; i < components.length; i++) {
+        for (let i = 0; i < data.scree_plot.component_numbers.length; i++) {
             table.rows.push({
-                rowHeader: [components[i].toString()],
+                rowHeader: [data.scree_plot.component_numbers[i].toString()],
                 eigenvalue: formatDisplayNumber(data.scree_plot.eigenvalues[i]),
             });
         }

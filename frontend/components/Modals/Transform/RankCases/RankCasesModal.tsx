@@ -160,20 +160,22 @@ const RankCasesModal: React.FC<RankCasesModalProps> = ({
         return;
       }
 
-      // Create a copy of data to modify
+      // Create a copy of data to modify - treat all rows as data, no header row
       let updatedData = data.map(row => [...row]);
-      const headers = updatedData[0];
       const newVariables: Variable[] = [];
-      let nextColumnIndex = headers.length;
+      let nextColumnIndex = updatedData.length > 0 ? updatedData[0].length : 0;
 
       // Process each selected variable
       for (const varName of selectedVariables) {
         const variable = variables.find(v => v.name === varName);
         if (!variable) continue;
 
+        // Prepare data for worker - no header row, all rows are data
+        const dataForWorker = updatedData.map(row => [...row]);
+
         // Calculate ranks using worker
         const rankedValues = await calculateRanksWithWorker(
-          updatedData,
+          dataForWorker,
           variable.columnIndex,
           assignRankTo,
           tieHandling
@@ -182,14 +184,10 @@ const RankCasesModal: React.FC<RankCasesModalProps> = ({
         // Create new variable for ranked values
         const newVarName = `R${varName}`;
 
-        // Add header
-        headers.push(newVarName);
-
-        // Add ranked values to data
-        updatedData.forEach((row, idx) => {
-          if (idx === 0) return; // Skip header row
-          row.push(rankedValues[idx - 1]);
-        });
+        // Add ranking values to ALL data rows (starting from row 0)
+        for (let i = 0; i < updatedData.length; i++) {
+          updatedData[i].push(rankedValues[i]);
+        }
 
         // Create new variable metadata
         const newVariable: Variable = {
