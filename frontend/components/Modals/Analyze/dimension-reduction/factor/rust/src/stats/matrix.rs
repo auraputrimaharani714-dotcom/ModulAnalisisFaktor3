@@ -36,30 +36,45 @@ pub fn calculate_matrix(
         means[j] = sum / (n_rows as f64);
     }
 
-    // Calculate standard deviations for correlation matrix
-    let mut std_devs = DVector::zeros(n_cols);
-    if matrix_type == "correlation" {
-        for j in 0..n_cols {
-            let mut sum_sq = 0.0;
-            for i in 0..n_rows {
-                sum_sq += (data_matrix[(i, j)] - means[j]).powi(2);
-            }
-            std_devs[j] = (sum_sq / ((n_rows - 1) as f64)).sqrt();
-        }
-    }
-
     // Calculate matrix
     let mut result = DMatrix::zeros(n_cols, n_cols);
-    for i in 0..n_cols {
-        for j in 0..n_cols {
-            let mut sum_product = 0.0;
-            for k in 0..n_rows {
-                sum_product += (data_matrix[(k, i)] - means[i]) * (data_matrix[(k, j)] - means[j]);
-            }
 
-            if matrix_type == "correlation" {
-                result[(i, j)] = sum_product / (((n_rows - 1) as f64) * std_devs[i] * std_devs[j]);
-            } else {
+    if matrix_type == "correlation" {
+        // Implement Pearson correlation formula:
+        // r = sum((x_i - mean_x) * (y_i - mean_y)) / sqrt(sum((x_i - mean_x)^2) * sum((y_i - mean_y)^2))
+        for i in 0..n_cols {
+            for j in 0..n_cols {
+                let mut sum_xy = 0.0;
+                let mut sum_x2 = 0.0;
+                let mut sum_y2 = 0.0;
+
+                for k in 0..n_rows {
+                    let dx = data_matrix[(k, i)] - means[i];
+                    let dy = data_matrix[(k, j)] - means[j];
+
+                    sum_xy += dx * dy;
+                    sum_x2 += dx * dx;
+                    sum_y2 += dy * dy;
+                }
+
+                let denominator = (sum_x2 * sum_y2).sqrt();
+
+                if denominator > 0.0 {
+                    result[(i, j)] = sum_xy / denominator;
+                } else {
+                    // If denominator is 0 (no variation), correlation is undefined
+                    result[(i, j)] = if i == j { 1.0 } else { 0.0 };
+                }
+            }
+        }
+    } else {
+        // Covariance matrix: cov = sum((x_i - mean_x) * (y_i - mean_y)) / (n - 1)
+        for i in 0..n_cols {
+            for j in 0..n_cols {
+                let mut sum_product = 0.0;
+                for k in 0..n_rows {
+                    sum_product += (data_matrix[(k, i)] - means[i]) * (data_matrix[(k, j)] - means[j]);
+                }
                 result[(i, j)] = sum_product / ((n_rows - 1) as f64);
             }
         }
