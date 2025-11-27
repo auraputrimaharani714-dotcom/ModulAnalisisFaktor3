@@ -1,5 +1,10 @@
 import {getSlicedData, getVarDefs} from "@/hooks/useVariable";
 import {FactorAnalysisType} from "@/components/Modals/Analyze/dimension-reduction/factor/types/factor-worker";
+import {transformFactorAnalysisResult} from "./factor-analysis-formatter";
+import {resultFactorAnalysis} from "./factor-analysis-output";
+import init, {
+    FactorAnalysis,
+} from "@/components/Modals/Analyze/dimension-reduction/factor/rust/pkg";
 
 export async function analyzeFactor({
     configData,
@@ -28,28 +33,28 @@ export async function analyzeFactor({
 
     console.log(configData);
 
-    // await init();
-    // const factor = new FactorAnalysis(
-    //     slicedDataForTarget,
-    //     slicedDataForValue,
-    //     varDefsForTarget,
-    //     varDefsForValue,
-    //     configData
-    // );
+    await init();
+    const factor = new FactorAnalysis(
+        slicedDataForTarget,
+        slicedDataForValue,
+        varDefsForTarget,
+        varDefsForValue,
+        configData
+    );
 
-    // const results = factor.get_formatted_results();
-    // const error = factor.get_all_errors();
+    const results = factor.get_formatted_results();
+    const error = factor.get_all_errors();
 
-    // console.log("results", results);
-    // console.log("error", error);
+    console.log("results", results);
+    console.log("error", error);
 
-    // const formattedResults = transformFactorAnalysisResult(results);
-    // console.log("formattedResults", formattedResults);
+    const formattedResults = transformFactorAnalysisResult(results);
+    console.log("formattedResults", formattedResults);
 
-    // /*
-    //  * 🎉 Final Result Process 🎯
-    //  * */
-    // await resultFactorAnalysis({
-    //     formattedResult: formattedResults ?? [],
-    // });
+    /*
+     * 🎉 Final Result Process 🎯
+     * */
+    await resultFactorAnalysis({
+        formattedResult: formattedResults ?? [],
+    });
 }
