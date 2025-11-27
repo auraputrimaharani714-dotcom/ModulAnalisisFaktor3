@@ -72,7 +72,7 @@ export const FactorContainer = ({ onClose }: FactorContainerProps) => {
     };
 
     const executeFactor = async (mainData: FactorMainType) => {
-        try {
+        const promise = async () => {
             const newFormData = {
                 ...formData,
                 main: mainData,
@@ -85,12 +85,25 @@ export const FactorContainer = ({ onClose }: FactorContainerProps) => {
                 dataVariables: dataVariables,
                 variables: variables,
             });
-        } catch (error) {
-            console.error(error);
-        }
+        };
 
-        closeModal();
-        onClose();
+        toast.promise(promise, {
+            loading: "Running Factor Analysis...",
+            success: () => {
+                closeModal();
+                onClose();
+                return "Factor Analysis completed successfully!";
+            },
+            error: (err) => {
+                return (
+                    <span>
+                        An error occurred during Factor Analysis.
+                        <br />
+                        Error: {String(err)}
+                    </span>
+                );
+            },
+        });
     };
 
     const resetFormData = async () => {
