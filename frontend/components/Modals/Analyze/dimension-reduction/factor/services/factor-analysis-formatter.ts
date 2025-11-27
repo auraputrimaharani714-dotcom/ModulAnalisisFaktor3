@@ -7,6 +7,13 @@ export function transformFactorAnalysisResult(data: any): ResultJson {
         tables: [],
     };
 
+    console.log("Transforming factor analysis result data:", data);
+
+    if (!data) {
+        console.error("No data provided to transformFactorAnalysisResult");
+        return resultJson;
+    }
+
     // 1. Descriptive Statistics
     if (data.descriptive_statistics) {
         const table: Table = {
