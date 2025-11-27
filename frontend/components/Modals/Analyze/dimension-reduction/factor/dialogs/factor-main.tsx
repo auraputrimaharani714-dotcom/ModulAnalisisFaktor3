@@ -18,6 +18,7 @@ import {useVariableStore} from "@/stores/useVariableStore";
 import {useDataStore} from "@/stores/useDataStore";
 import {analyzeFactor} from "@/components/Modals/Analyze/dimension-reduction/factor/services/factor-analysis";
 import {clearFormData, getFormData, saveFormData} from "@/hooks/useIndexedDB";
+import {toast} from "sonner";
 
 export const FactorContainer = ({ onClose }: FactorContainerProps) => {
     const variables = useVariableStore((state) => state.variables);
