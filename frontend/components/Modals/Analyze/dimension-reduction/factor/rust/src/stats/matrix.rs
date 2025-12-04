@@ -296,6 +296,7 @@ pub fn calculate_inverse_correlation_matrix(
 
     Ok(InverseCorrelationMatrix {
         inverse_correlations,
+        variable_order: var_names,
     })
 }
 
