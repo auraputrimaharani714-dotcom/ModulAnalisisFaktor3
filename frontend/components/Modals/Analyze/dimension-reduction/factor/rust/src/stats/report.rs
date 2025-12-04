@@ -250,6 +250,7 @@ pub fn calculate_reproduced_correlations(
     Ok(ReproducedCorrelations {
         reproduced_correlation,
         residual,
+        variable_order: var_names,
     })
 }
 
