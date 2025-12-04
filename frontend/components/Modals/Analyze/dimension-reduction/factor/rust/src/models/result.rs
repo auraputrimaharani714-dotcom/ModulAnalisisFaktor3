@@ -56,6 +56,8 @@ pub struct CorrelationMatrix {
     pub correlations: HashMap<String, HashMap<String, f64>>,
     #[serde(rename = "sig_values")]
     pub sig_values: HashMap<String, HashMap<String, f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
