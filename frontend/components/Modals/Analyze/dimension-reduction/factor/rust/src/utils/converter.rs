@@ -298,38 +298,52 @@ impl FormatResult {
         });
 
         let reproduced_correlations = result.reproduced_correlations.as_ref().map(|corr| {
-            let reproduced_correlation = corr.reproduced_correlation
+            let reproduced_correlation = corr.variable_order
                 .iter()
-                .map(|(var_name, values)| {
+                .map(|var_name| {
+                    let values = corr.reproduced_correlation
+                        .get(var_name)
+                        .map(|var_values| {
+                            corr.variable_order
+                                .iter()
+                                .map(|other_var| {
+                                    VariableValue {
+                                        variable: other_var.clone(),
+                                        value: *var_values.get(other_var).unwrap_or(&0.0),
+                                    }
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
                     CorrelationEntry {
                         variable: var_name.clone(),
-                        values: values
-                            .iter()
-                            .map(|(other_var, value)| {
-                                VariableValue {
-                                    variable: other_var.clone(),
-                                    value: *value,
-                                }
-                            })
-                            .collect(),
+                        values,
                     }
                 })
                 .collect();
 
-            let residual = corr.residual
+            let residual = corr.variable_order
                 .iter()
-                .map(|(var_name, values)| {
+                .map(|var_name| {
+                    let values = corr.residual
+                        .get(var_name)
+                        .map(|var_values| {
+                            corr.variable_order
+                                .iter()
+                                .map(|other_var| {
+                                    VariableValue {
+                                        variable: other_var.clone(),
+                                        value: *var_values.get(other_var).unwrap_or(&0.0),
+                                    }
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
                     CorrelationEntry {
                         variable: var_name.clone(),
-                        values: values
-                            .iter()
-                            .map(|(other_var, value)| {
-                                VariableValue {
-                                    variable: other_var.clone(),
-                                    value: *value,
-                                }
-                            })
-                            .collect(),
+                        values,
                     }
                 })
                 .collect();
