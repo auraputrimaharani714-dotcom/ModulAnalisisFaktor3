@@ -63,6 +63,8 @@ pub struct CorrelationMatrix {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct InverseCorrelationMatrix {
     pub inverse_correlations: HashMap<String, HashMap<String, f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
