@@ -186,6 +186,7 @@ pub fn calculate_correlation_matrix(
     Ok(CorrelationMatrix {
         correlations,
         sig_values,
+        variable_order: var_names,
     })
 }
 
