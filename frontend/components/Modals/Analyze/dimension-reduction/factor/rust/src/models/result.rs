@@ -121,6 +121,8 @@ pub struct ComponentMatrix {
 pub struct ReproducedCorrelations {
     pub reproduced_correlation: HashMap<String, HashMap<String, f64>>,
     pub residual: HashMap<String, HashMap<String, f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
