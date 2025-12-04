@@ -167,20 +167,27 @@ impl FormatResult {
         });
 
         let inverse_correlation_matrix = result.inverse_correlation_matrix.as_ref().map(|matrix| {
-            let inverse_correlations = matrix.inverse_correlations
+            let inverse_correlations = matrix.variable_order
                 .iter()
-                .map(|(var_name, values)| {
+                .map(|var_name| {
+                    let values = matrix.inverse_correlations
+                        .get(var_name)
+                        .map(|var_values| {
+                            matrix.variable_order
+                                .iter()
+                                .map(|other_var| {
+                                    VariableValue {
+                                        variable: other_var.clone(),
+                                        value: *var_values.get(other_var).unwrap_or(&0.0),
+                                    }
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
                     CorrelationEntry {
                         variable: var_name.clone(),
-                        values: values
-                            .iter()
-                            .map(|(other_var, value)| {
-                                VariableValue {
-                                    variable: other_var.clone(),
-                                    value: *value,
-                                }
-                            })
-                            .collect(),
+                        values,
                     }
                 })
                 .collect();
