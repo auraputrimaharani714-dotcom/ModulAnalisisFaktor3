@@ -83,6 +83,8 @@ pub struct AntiImageMatrices {
     pub anti_image_covariance: HashMap<String, HashMap<String, f64>>,
     #[serde(rename = "anti_image_correlation")]
     pub anti_image_correlation: HashMap<String, HashMap<String, f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
