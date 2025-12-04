@@ -108,38 +108,54 @@ struct FormattedComponentScoreCoefficient {
 impl FormatResult {
     fn from_analysis_result(result: &FactorAnalysisResult) -> Self {
         let correlation_matrix = result.correlation_matrix.as_ref().map(|matrix| {
-            let correlations = matrix.correlations
+            // Use variable_order to maintain the correct order
+            let correlations = matrix.variable_order
                 .iter()
-                .map(|(var_name, values)| {
+                .map(|var_name| {
+                    let values = matrix.correlations
+                        .get(var_name)
+                        .map(|var_values| {
+                            // Build values in the order of variables
+                            matrix.variable_order
+                                .iter()
+                                .map(|other_var| {
+                                    VariableValue {
+                                        variable: other_var.clone(),
+                                        value: *var_values.get(other_var).unwrap_or(&0.0),
+                                    }
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
                     CorrelationEntry {
                         variable: var_name.clone(),
-                        values: values
-                            .iter()
-                            .map(|(other_var, value)| {
-                                VariableValue {
-                                    variable: other_var.clone(),
-                                    value: *value,
-                                }
-                            })
-                            .collect(),
+                        values,
                     }
                 })
                 .collect();
 
-            let sig_values = matrix.sig_values
+            let sig_values = matrix.variable_order
                 .iter()
-                .map(|(var_name, values)| {
+                .map(|var_name| {
+                    let values = matrix.sig_values
+                        .get(var_name)
+                        .map(|var_values| {
+                            matrix.variable_order
+                                .iter()
+                                .map(|other_var| {
+                                    VariableValue {
+                                        variable: other_var.clone(),
+                                        value: *var_values.get(other_var).unwrap_or(&0.0),
+                                    }
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
                     CorrelationEntry {
                         variable: var_name.clone(),
-                        values: values
-                            .iter()
-                            .map(|(other_var, value)| {
-                                VariableValue {
-                                    variable: other_var.clone(),
-                                    value: *value,
-                                }
-                            })
-                            .collect(),
+                        values,
                     }
                 })
                 .collect();
