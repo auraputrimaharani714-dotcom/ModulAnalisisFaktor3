@@ -352,5 +352,6 @@ pub fn calculate_anti_image_matrices(
     Ok(AntiImageMatrices {
         anti_image_covariance,
         anti_image_correlation,
+        variable_order: var_names,
     })
 }
