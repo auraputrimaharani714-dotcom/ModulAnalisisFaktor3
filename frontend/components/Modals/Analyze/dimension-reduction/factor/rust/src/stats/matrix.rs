@@ -261,6 +261,7 @@ pub fn calculate_covariance_matrix(
     Ok(CorrelationMatrix {
         correlations,
         sig_values,
+        variable_order: var_names,
     })
 }
 
