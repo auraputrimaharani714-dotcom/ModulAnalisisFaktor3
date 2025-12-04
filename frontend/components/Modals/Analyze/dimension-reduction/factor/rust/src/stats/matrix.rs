@@ -151,25 +151,32 @@ pub fn calculate_correlation_matrix(
             let other_var = &var_names[j];
             var_correlations.insert(other_var.clone(), matrix[(i, j)]);
 
-            // Calculate significance (p-value)
-            let p_value = if i == j {
-                0.0
-            } else {
-                // Fisher's z-transformation for correlation significance
-                let n = matrix.nrows();
-                let r = matrix[(i, j)];
-                let z = 0.5 * ((1.0 + r) / (1.0 - r)).ln();
-                let se = 1.0 / ((n - 3) as f64).sqrt();
-                let t = z / se;
+            // Calculate significance (p-value) only if requested
+            if config.descriptives.significance_lvl {
+                let p_value = if i == j {
+                    0.0
+                } else {
+                    // Fisher's z-transformation for correlation significance
+                    let n = data_matrix.nrows();
+                    let r = matrix[(i, j)];
 
-                // Two-tailed p-value approximation using t distribution with n-2 degrees of freedom
-                let df = n - 2;
-                let x = (df as f64) / ((df as f64) + t * t);
-                let beta = 0.5 * incomplete_beta(0.5 * (df as f64), 0.5, x);
-                2.0 * beta
-            };
+                    // Clamp r to avoid ln(0) or ln(negative)
+                    let r_clamped = r.max(-0.99999).min(0.99999);
+                    let z = 0.5 * ((1.0 + r_clamped) / (1.0 - r_clamped)).ln();
+                    let se = 1.0 / ((n - 3) as f64).sqrt();
+                    let t = z / se;
 
-            var_sig_values.insert(other_var.clone(), p_value);
+                    // One-tailed p-value using t distribution with n-2 degrees of freedom
+                    let df = (n - 2) as f64;
+                    let x = df / (df + t * t);
+                    let beta = 0.5 * incomplete_beta(0.5 * df, 0.5, x);
+
+                    // For one-tailed: use beta directly
+                    if t > 0.0 { beta } else { 1.0 - beta }
+                };
+
+                var_sig_values.insert(other_var.clone(), p_value);
+            }
         }
 
         correlations.insert(var_name.clone(), var_correlations);
