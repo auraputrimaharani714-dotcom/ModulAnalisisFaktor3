@@ -198,38 +198,52 @@ impl FormatResult {
         });
 
         let anti_image_matrices = result.anti_image_matrices.as_ref().map(|matrices| {
-            let anti_image_covariance = matrices.anti_image_covariance
+            let anti_image_covariance = matrices.variable_order
                 .iter()
-                .map(|(var_name, values)| {
+                .map(|var_name| {
+                    let values = matrices.anti_image_covariance
+                        .get(var_name)
+                        .map(|var_values| {
+                            matrices.variable_order
+                                .iter()
+                                .map(|other_var| {
+                                    VariableValue {
+                                        variable: other_var.clone(),
+                                        value: *var_values.get(other_var).unwrap_or(&0.0),
+                                    }
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
                     CorrelationEntry {
                         variable: var_name.clone(),
-                        values: values
-                            .iter()
-                            .map(|(other_var, value)| {
-                                VariableValue {
-                                    variable: other_var.clone(),
-                                    value: *value,
-                                }
-                            })
-                            .collect(),
+                        values,
                     }
                 })
                 .collect();
 
-            let anti_image_correlation = matrices.anti_image_correlation
+            let anti_image_correlation = matrices.variable_order
                 .iter()
-                .map(|(var_name, values)| {
+                .map(|var_name| {
+                    let values = matrices.anti_image_correlation
+                        .get(var_name)
+                        .map(|var_values| {
+                            matrices.variable_order
+                                .iter()
+                                .map(|other_var| {
+                                    VariableValue {
+                                        variable: other_var.clone(),
+                                        value: *var_values.get(other_var).unwrap_or(&0.0),
+                                    }
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
                     CorrelationEntry {
                         variable: var_name.clone(),
-                        values: values
-                            .iter()
-                            .map(|(other_var, value)| {
-                                VariableValue {
-                                    variable: other_var.clone(),
-                                    value: *value,
-                                }
-                            })
-                            .collect(),
+                        values,
                     }
                 })
                 .collect();
