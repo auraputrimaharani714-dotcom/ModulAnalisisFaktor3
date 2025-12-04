@@ -74,13 +74,13 @@ export function transformFactorAnalysisResult(data: any): ResultJson {
             }
         );
 
-        // Significance values
+        // Significance values - only add if they exist and have length
         if (
             data.correlation_matrix.sig_values &&
-            data.correlation_matrix.sig_values.length
+            data.correlation_matrix.sig_values.length > 0
         ) {
-            const sigHeader = { header: "Sig. (1-tailed)", key: "sig_header" };
-            table.columnHeaders[0] = sigHeader;
+            // Add "Sig. (1-tailed)" row header
+            table.columnHeaders[0] = { header: "Sig. (1-tailed)", key: "var" };
 
             data.correlation_matrix.sig_values.forEach(
                 (entry: any, rowIndex: number) => {
