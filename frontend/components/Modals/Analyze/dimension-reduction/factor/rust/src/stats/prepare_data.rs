@@ -20,24 +20,16 @@ pub fn extract_data_matrix(
         let mut seen = std::collections::HashSet::new();
         let mut ordered_vars = Vec::new();
 
-        data.target_data
-            .iter()
-            .flat_map(|dataset| {
-                dataset.iter().flat_map(|record| {
-                    record.values
-                        .iter()
-                        .filter_map(|(key, value)| {
-                            if matches!(value, DataValue::Number(_)) && !seen.contains(key) {
-                                seen.insert(key.clone());
-                                ordered_vars.push(key.clone());
-                                Some(key.clone())
-                            } else {
-                                None
-                            }
-                        })
-                })
-            })
-            .collect::<Vec<_>>();
+        for dataset in &data.target_data {
+            for record in dataset {
+                for (key, value) in &record.values {
+                    if matches!(value, DataValue::Number(_)) && !seen.contains(key) {
+                        seen.insert(key.clone());
+                        ordered_vars.push(key.clone());
+                    }
+                }
+            }
+        }
 
         ordered_vars
     };
