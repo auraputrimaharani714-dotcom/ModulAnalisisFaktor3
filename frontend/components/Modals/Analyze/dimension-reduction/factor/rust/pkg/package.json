@@ -1,7 +1,7 @@
 {
   "name": "wasm",
   "type": "module",
-  "description": "Factor Analysis Rust-Wasm Module.",
+  "description": "Project Rust-Wasm Statify.",
   "version": "0.1.0",
   "license": "MIT",
   "repository": {
