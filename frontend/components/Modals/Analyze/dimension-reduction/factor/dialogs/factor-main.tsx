@@ -18,6 +18,7 @@ import {useVariableStore} from "@/stores/useVariableStore";
 import {useDataStore} from "@/stores/useDataStore";
 import {analyzeFactor} from "@/components/Modals/Analyze/dimension-reduction/factor/services/factor-analysis";
 import {clearFormData, getFormData, saveFormData} from "@/hooks/useIndexedDB";
+import {toast} from "sonner";
 
 export const FactorContainer = ({ onClose }: FactorContainerProps) => {
     const variables = useVariableStore((state) => state.variables);
@@ -71,7 +72,7 @@ export const FactorContainer = ({ onClose }: FactorContainerProps) => {
     };
 
     const executeFactor = async (mainData: FactorMainType) => {
-        try {
+        const promise = async () => {
             const newFormData = {
                 ...formData,
                 main: mainData,
@@ -84,12 +85,25 @@ export const FactorContainer = ({ onClose }: FactorContainerProps) => {
                 dataVariables: dataVariables,
                 variables: variables,
             });
-        } catch (error) {
-            console.error(error);
-        }
+        };
 
-        closeModal();
-        onClose();
+        toast.promise(promise, {
+            loading: "Running Factor Analysis...",
+            success: () => {
+                closeModal();
+                onClose();
+                return "Factor Analysis completed successfully!";
+            },
+            error: (err) => {
+                return (
+                    <span>
+                        An error occurred during Factor Analysis.
+                        <br />
+                        Error: {String(err)}
+                    </span>
+                );
+            },
+        });
     };
 
     const resetFormData = async () => {

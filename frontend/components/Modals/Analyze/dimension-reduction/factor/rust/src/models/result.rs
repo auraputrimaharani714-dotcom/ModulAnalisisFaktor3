@@ -56,11 +56,15 @@ pub struct CorrelationMatrix {
     pub correlations: HashMap<String, HashMap<String, f64>>,
     #[serde(rename = "sig_values")]
     pub sig_values: HashMap<String, HashMap<String, f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct InverseCorrelationMatrix {
     pub inverse_correlations: HashMap<String, HashMap<String, f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -79,6 +83,8 @@ pub struct AntiImageMatrices {
     pub anti_image_covariance: HashMap<String, HashMap<String, f64>>,
     #[serde(rename = "anti_image_correlation")]
     pub anti_image_correlation: HashMap<String, HashMap<String, f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -115,6 +121,8 @@ pub struct ComponentMatrix {
 pub struct ReproducedCorrelations {
     pub reproduced_correlation: HashMap<String, HashMap<String, f64>>,
     pub residual: HashMap<String, HashMap<String, f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

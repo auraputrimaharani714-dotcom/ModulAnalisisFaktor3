@@ -36,30 +36,45 @@ pub fn calculate_matrix(
         means[j] = sum / (n_rows as f64);
     }
 
-    // Calculate standard deviations for correlation matrix
-    let mut std_devs = DVector::zeros(n_cols);
-    if matrix_type == "correlation" {
-        for j in 0..n_cols {
-            let mut sum_sq = 0.0;
-            for i in 0..n_rows {
-                sum_sq += (data_matrix[(i, j)] - means[j]).powi(2);
-            }
-            std_devs[j] = (sum_sq / ((n_rows - 1) as f64)).sqrt();
-        }
-    }
-
     // Calculate matrix
     let mut result = DMatrix::zeros(n_cols, n_cols);
-    for i in 0..n_cols {
-        for j in 0..n_cols {
-            let mut sum_product = 0.0;
-            for k in 0..n_rows {
-                sum_product += (data_matrix[(k, i)] - means[i]) * (data_matrix[(k, j)] - means[j]);
-            }
 
-            if matrix_type == "correlation" {
-                result[(i, j)] = sum_product / (((n_rows - 1) as f64) * std_devs[i] * std_devs[j]);
-            } else {
+    if matrix_type == "correlation" {
+        // Implement Pearson correlation formula:
+        // r = sum((x_i - mean_x) * (y_i - mean_y)) / sqrt(sum((x_i - mean_x)^2) * sum((y_i - mean_y)^2))
+        for i in 0..n_cols {
+            for j in 0..n_cols {
+                let mut sum_xy = 0.0;
+                let mut sum_x2 = 0.0;
+                let mut sum_y2 = 0.0;
+
+                for k in 0..n_rows {
+                    let dx = data_matrix[(k, i)] - means[i];
+                    let dy = data_matrix[(k, j)] - means[j];
+
+                    sum_xy += dx * dy;
+                    sum_x2 += dx * dx;
+                    sum_y2 += dy * dy;
+                }
+
+                let denominator = (sum_x2 * sum_y2).sqrt();
+
+                if denominator > 0.0 {
+                    result[(i, j)] = sum_xy / denominator;
+                } else {
+                    // If denominator is 0 (no variation), correlation is undefined
+                    result[(i, j)] = if i == j { 1.0 } else { 0.0 };
+                }
+            }
+        }
+    } else {
+        // Covariance matrix: cov = sum((x_i - mean_x) * (y_i - mean_y)) / (n - 1)
+        for i in 0..n_cols {
+            for j in 0..n_cols {
+                let mut sum_product = 0.0;
+                for k in 0..n_rows {
+                    sum_product += (data_matrix[(k, i)] - means[i]) * (data_matrix[(k, j)] - means[j]);
+                }
                 result[(i, j)] = sum_product / ((n_rows - 1) as f64);
             }
         }
@@ -136,25 +151,32 @@ pub fn calculate_correlation_matrix(
             let other_var = &var_names[j];
             var_correlations.insert(other_var.clone(), matrix[(i, j)]);
 
-            // Calculate significance (p-value)
-            let p_value = if i == j {
-                0.0
-            } else {
-                // Fisher's z-transformation for correlation significance
-                let n = matrix.nrows();
-                let r = matrix[(i, j)];
-                let z = 0.5 * ((1.0 + r) / (1.0 - r)).ln();
-                let se = 1.0 / ((n - 3) as f64).sqrt();
-                let t = z / se;
+            // Calculate significance (p-value) only if requested
+            if config.descriptives.significance_lvl {
+                let p_value = if i == j {
+                    0.0
+                } else {
+                    // Fisher's z-transformation for correlation significance
+                    let n = data_matrix.nrows();
+                    let r = matrix[(i, j)];
 
-                // Two-tailed p-value approximation using t distribution with n-2 degrees of freedom
-                let df = n - 2;
-                let x = (df as f64) / ((df as f64) + t * t);
-                let beta = 0.5 * incomplete_beta(0.5 * (df as f64), 0.5, x);
-                2.0 * beta
-            };
+                    // Clamp r to avoid ln(0) or ln(negative)
+                    let r_clamped = r.max(-0.99999).min(0.99999);
+                    let z = 0.5 * ((1.0 + r_clamped) / (1.0 - r_clamped)).ln();
+                    let se = 1.0 / ((n - 3) as f64).sqrt();
+                    let t = z / se;
 
-            var_sig_values.insert(other_var.clone(), p_value);
+                    // One-tailed p-value using t distribution with n-2 degrees of freedom
+                    let df = (n - 2) as f64;
+                    let x = df / (df + t * t);
+                    let beta = 0.5 * incomplete_beta(0.5 * df, 0.5, x);
+
+                    // For one-tailed: use beta directly
+                    if t > 0.0 { beta } else { 1.0 - beta }
+                };
+
+                var_sig_values.insert(other_var.clone(), p_value);
+            }
         }
 
         correlations.insert(var_name.clone(), var_correlations);
@@ -164,6 +186,7 @@ pub fn calculate_correlation_matrix(
     Ok(CorrelationMatrix {
         correlations,
         sig_values,
+        variable_order: var_names,
     })
 }
 
@@ -198,25 +221,37 @@ pub fn calculate_covariance_matrix(
             let other_var = &var_names[j];
             var_correlations.insert(other_var.clone(), matrix[(i, j)]);
 
-            // Calculate significance (p-value)
-            let p_value = if i == j {
-                0.0
-            } else {
-                // Fisher's z-transformation for correlation significance
-                let n = matrix.nrows();
-                let r = matrix[(i, j)];
-                let z = 0.5 * ((1.0 + r) / (1.0 - r)).ln();
-                let se = 1.0 / ((n - 3) as f64).sqrt();
-                let t = z / se;
+            // Calculate significance (p-value) only if requested
+            if config.descriptives.significance_lvl {
+                let p_value = if i == j {
+                    0.0
+                } else {
+                    // For covariance matrix, convert to correlation first for significance calculation
+                    let n = data_matrix.nrows();
 
-                // Two-tailed p-value approximation using t distribution with n-2 degrees of freedom
-                let df = n - 2;
-                let x = (df as f64) / ((df as f64) + t * t);
-                let beta = 0.5 * incomplete_beta(0.5 * (df as f64), 0.5, x);
-                2.0 * beta
-            };
+                    // Convert covariance to correlation
+                    let std_i = (matrix[(i, i)]).sqrt();
+                    let std_j = (matrix[(j, j)]).sqrt();
+                    let r = if std_i > 0.0 && std_j > 0.0 {
+                        matrix[(i, j)] / (std_i * std_j)
+                    } else {
+                        0.0
+                    };
 
-            var_sig_values.insert(other_var.clone(), p_value);
+                    let r_clamped = r.max(-0.99999).min(0.99999);
+                    let z = 0.5 * ((1.0 + r_clamped) / (1.0 - r_clamped)).ln();
+                    let se = 1.0 / ((n - 3) as f64).sqrt();
+                    let t = z / se;
+
+                    let df = (n - 2) as f64;
+                    let x = df / (df + t * t);
+                    let beta = 0.5 * incomplete_beta(0.5 * df, 0.5, x);
+
+                    if t > 0.0 { beta } else { 1.0 - beta }
+                };
+
+                var_sig_values.insert(other_var.clone(), p_value);
+            }
         }
 
         correlations.insert(var_name.clone(), var_correlations);
@@ -226,6 +261,7 @@ pub fn calculate_covariance_matrix(
     Ok(CorrelationMatrix {
         correlations,
         sig_values,
+        variable_order: var_names,
     })
 }
 
@@ -260,6 +296,7 @@ pub fn calculate_inverse_correlation_matrix(
 
     Ok(InverseCorrelationMatrix {
         inverse_correlations,
+        variable_order: var_names,
     })
 }
 
@@ -315,5 +352,6 @@ pub fn calculate_anti_image_matrices(
     Ok(AntiImageMatrices {
         anti_image_covariance,
         anti_image_correlation,
+        variable_order: var_names,
     })
 }
