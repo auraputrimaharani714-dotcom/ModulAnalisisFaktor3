@@ -169,10 +169,13 @@ pub fn calculate_correlation_matrix(
                     let t_stat = numerator / denominator;
 
                     // Calculate 2-tailed p-value using t distribution with df = n-2
+                    // incomplete_beta gives CDF: P(T <= |t|)
+                    // We need: P(T > |t|) = 1 - CDF(|t|)
                     let df = n - 2.0;
                     let abs_t = t_stat.abs();
                     let x = df / (df + abs_t * abs_t);
-                    let p_two_tailed = incomplete_beta(0.5 * df, 0.5, x);
+                    let cdf = incomplete_beta(0.5 * df, 0.5, x);  // P(T <= |t|)
+                    let p_two_tailed = 2.0 * (1.0 - cdf);          // P(T > |t|) two-tailed
 
                     // Convert to 1-tailed p-value: P_1-tailed = P_2-tailed / 2
                     p_two_tailed / 2.0
@@ -249,10 +252,13 @@ pub fn calculate_covariance_matrix(
                     let t_stat = numerator / denominator;
 
                     // Calculate 2-tailed p-value using t distribution with df = n-2
+                    // incomplete_beta gives CDF: P(T <= |t|)
+                    // We need: P(T > |t|) = 1 - CDF(|t|)
                     let df = n - 2.0;
                     let abs_t = t_stat.abs();
                     let x = df / (df + abs_t * abs_t);
-                    let p_two_tailed = incomplete_beta(0.5 * df, 0.5, x);
+                    let cdf = incomplete_beta(0.5 * df, 0.5, x);  // P(T <= |t|)
+                    let p_two_tailed = 2.0 * (1.0 - cdf);          // P(T > |t|) two-tailed
 
                     // Convert to 1-tailed p-value: P_1-tailed = P_2-tailed / 2
                     p_two_tailed / 2.0
