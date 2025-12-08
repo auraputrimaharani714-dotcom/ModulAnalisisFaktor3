@@ -135,8 +135,8 @@ impl FormatResult {
                 })
                 .collect();
 
-            let sig_values = if matrix.sig_values.is_empty() {
-                // Don't populate sig_values if none were calculated
+            let sig_values = if matrix.sig_values.values().all(|v| v.is_empty()) {
+                // Don't populate sig_values if none were calculated (all inner HashMaps are empty)
                 Vec::new()
             } else {
                 matrix.variable_order
