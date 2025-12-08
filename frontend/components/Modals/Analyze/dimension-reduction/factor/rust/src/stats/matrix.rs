@@ -156,23 +156,26 @@ pub fn calculate_correlation_matrix(
                 let p_value = if i == j {
                     0.0
                 } else {
-                    // Fisher's z-transformation for correlation significance
-                    let n = data_matrix.nrows();
+                    // Calculate p-value using Pearson correlation significance test
+                    let n = data_matrix.nrows() as f64;
                     let r = matrix[(i, j)];
 
-                    // Clamp r to avoid ln(0) or ln(negative)
+                    // Clamp r to avoid division by zero
                     let r_clamped = r.max(-0.99999).min(0.99999);
-                    let z = 0.5 * ((1.0 + r_clamped) / (1.0 - r_clamped)).ln();
-                    let se = 1.0 / ((n - 3) as f64).sqrt();
-                    let t = z / se;
 
-                    // One-tailed p-value using t distribution with n-2 degrees of freedom
-                    let df = (n - 2) as f64;
-                    let x = df / (df + t * t);
-                    let beta = 0.5 * incomplete_beta(0.5 * df, 0.5, x);
+                    // Calculate t-statistic: t = r * sqrt(n-2) / sqrt(1-r^2)
+                    let numerator = r_clamped * ((n - 2.0).sqrt());
+                    let denominator = (1.0 - r_clamped * r_clamped).sqrt();
+                    let t_stat = numerator / denominator;
 
-                    // For one-tailed: use beta directly
-                    if t > 0.0 { beta } else { 1.0 - beta }
+                    // Calculate 2-tailed p-value using t distribution with df = n-2
+                    let df = n - 2.0;
+                    let abs_t = t_stat.abs();
+                    let x = df / (df + abs_t * abs_t);
+                    let p_two_tailed = incomplete_beta(0.5 * df, 0.5, x);
+
+                    // Convert to 1-tailed p-value: P_1-tailed = P_2-tailed / 2
+                    p_two_tailed / 2.0
                 };
 
                 var_sig_values.insert(other_var.clone(), p_value);
@@ -227,7 +230,7 @@ pub fn calculate_covariance_matrix(
                     0.0
                 } else {
                     // For covariance matrix, convert to correlation first for significance calculation
-                    let n = data_matrix.nrows();
+                    let n = data_matrix.nrows() as f64;
 
                     // Convert covariance to correlation
                     let std_i = (matrix[(i, i)]).sqrt();
@@ -239,15 +242,20 @@ pub fn calculate_covariance_matrix(
                     };
 
                     let r_clamped = r.max(-0.99999).min(0.99999);
-                    let z = 0.5 * ((1.0 + r_clamped) / (1.0 - r_clamped)).ln();
-                    let se = 1.0 / ((n - 3) as f64).sqrt();
-                    let t = z / se;
 
-                    let df = (n - 2) as f64;
-                    let x = df / (df + t * t);
-                    let beta = 0.5 * incomplete_beta(0.5 * df, 0.5, x);
+                    // Calculate t-statistic: t = r * sqrt(n-2) / sqrt(1-r^2)
+                    let numerator = r_clamped * ((n - 2.0).sqrt());
+                    let denominator = (1.0 - r_clamped * r_clamped).sqrt();
+                    let t_stat = numerator / denominator;
 
-                    if t > 0.0 { beta } else { 1.0 - beta }
+                    // Calculate 2-tailed p-value using t distribution with df = n-2
+                    let df = n - 2.0;
+                    let abs_t = t_stat.abs();
+                    let x = df / (df + abs_t * abs_t);
+                    let p_two_tailed = incomplete_beta(0.5 * df, 0.5, x);
+
+                    // Convert to 1-tailed p-value: P_1-tailed = P_2-tailed / 2
+                    p_two_tailed / 2.0
                 };
 
                 var_sig_values.insert(other_var.clone(), p_value);
