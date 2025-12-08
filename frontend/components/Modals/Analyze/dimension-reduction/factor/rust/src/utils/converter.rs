@@ -135,30 +135,35 @@ impl FormatResult {
                 })
                 .collect();
 
-            let sig_values = matrix.variable_order
-                .iter()
-                .map(|var_name| {
-                    let values = matrix.sig_values
-                        .get(var_name)
-                        .map(|var_values| {
-                            matrix.variable_order
-                                .iter()
-                                .map(|other_var| {
-                                    VariableValue {
-                                        variable: other_var.clone(),
-                                        value: *var_values.get(other_var).unwrap_or(&0.0),
-                                    }
-                                })
-                                .collect()
-                        })
-                        .unwrap_or_default();
+            let sig_values = if matrix.sig_values.is_empty() {
+                // Don't populate sig_values if none were calculated
+                Vec::new()
+            } else {
+                matrix.variable_order
+                    .iter()
+                    .map(|var_name| {
+                        let values = matrix.sig_values
+                            .get(var_name)
+                            .map(|var_values| {
+                                matrix.variable_order
+                                    .iter()
+                                    .map(|other_var| {
+                                        VariableValue {
+                                            variable: other_var.clone(),
+                                            value: *var_values.get(other_var).unwrap_or(&0.0),
+                                        }
+                                    })
+                                    .collect()
+                            })
+                            .unwrap_or_default();
 
-                    CorrelationEntry {
-                        variable: var_name.clone(),
-                        values,
-                    }
-                })
-                .collect();
+                        CorrelationEntry {
+                            variable: var_name.clone(),
+                            values,
+                        }
+                    })
+                    .collect()
+            };
 
             FormattedCorrelation {
                 correlations,
