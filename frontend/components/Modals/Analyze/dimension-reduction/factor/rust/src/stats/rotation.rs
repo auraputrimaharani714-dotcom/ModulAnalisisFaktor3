@@ -995,6 +995,7 @@ pub fn calculate_rotated_component_matrix(
 
     Ok(RotatedComponentMatrix {
         components,
+        variable_order: var_names,
     })
 }
 
