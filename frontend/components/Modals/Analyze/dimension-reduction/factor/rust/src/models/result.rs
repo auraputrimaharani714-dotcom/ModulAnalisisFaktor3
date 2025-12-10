@@ -91,6 +91,8 @@ pub struct AntiImageMatrices {
 pub struct Communalities {
     pub initial: HashMap<String, f64>,
     pub extraction: HashMap<String, f64>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -115,6 +117,8 @@ pub struct TotalVarianceComponent {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ComponentMatrix {
     pub components: HashMap<String, Vec<f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -128,6 +132,8 @@ pub struct ReproducedCorrelations {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RotatedComponentMatrix {
     pub components: HashMap<String, Vec<f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -138,6 +144,8 @@ pub struct ComponentTransformationMatrix {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ComponentScoreCoefficientMatrix {
     pub components: HashMap<String, Vec<f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

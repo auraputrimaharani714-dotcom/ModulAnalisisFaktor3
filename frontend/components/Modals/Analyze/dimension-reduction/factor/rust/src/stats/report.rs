@@ -42,6 +42,7 @@ pub fn calculate_communalities(
     Ok(Communalities {
         initial,
         extraction,
+        variable_order: var_names,
     })
 }
 
@@ -200,6 +201,7 @@ pub fn calculate_component_matrix(
 
     Ok(ComponentMatrix {
         components,
+        variable_order: var_names,
     })
 }
 
@@ -389,6 +391,7 @@ pub fn calculate_component_score_coefficient_matrix(
     // Convert to result structure
     let mut component_score_coefficient_matrix = ComponentScoreCoefficientMatrix {
         components: HashMap::new(),
+        variable_order: var_names.clone(),
     };
 
     for (i, var_name) in var_names.iter().enumerate() {
@@ -402,6 +405,7 @@ pub fn calculate_component_score_coefficient_matrix(
             component_score_coefficient_matrix.components.insert(var_name.clone(), factor_scores);
         }
     }
+    component_score_coefficient_matrix.variable_order = var_names;
 
     Ok(component_score_coefficient_matrix)
 }
@@ -548,6 +552,7 @@ pub fn create_rotated_component_matrix(
 
     RotatedComponentMatrix {
         components,
+        variable_order: var_names.to_vec(),
     }
 }
 
