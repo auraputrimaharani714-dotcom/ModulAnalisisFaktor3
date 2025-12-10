@@ -390,6 +390,8 @@ impl FormatResult {
 
                 FormattedComponentScoreCoefficient {
                     components,
+                }
+            });
 
         FormatResult {
             descriptive_statistics: result.descriptive_statistics.clone(),
