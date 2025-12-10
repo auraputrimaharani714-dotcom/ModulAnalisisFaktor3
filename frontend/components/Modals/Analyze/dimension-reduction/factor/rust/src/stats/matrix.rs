@@ -42,7 +42,7 @@ pub fn calculate_matrix(
     let mut result = DMatrix::zeros(n_cols, n_cols);
 
     if matrix_type == "correlation" {
-        // Rumus korelasi pearson
+        // Implement Pearson correlation formula:
         // r = sum((x_i - mean_x) * (y_i - mean_y)) / sqrt(sum((x_i - mean_x)^2) * sum((y_i - mean_y)^2))
         for i in 0..n_cols {
             for j in 0..n_cols {
@@ -328,137 +328,53 @@ pub fn calculate_inverse_correlation_matrix(
     })
 }
 
-// pub fn calculate_anti_image_matrices(
-//     data: &AnalysisData,
-//     config: &FactorAnalysisConfig
-// ) -> Result<AntiImageMatrices, String> {
-//     let (data_matrix, var_names) = extract_data_matrix(data, config)?;
-//     let corr_matrix = calculate_matrix(&data_matrix, "correlation")?;
-
-//     let inverse = match corr_matrix.try_inverse() {
-//         Some(inv) => inv,
-//         None => {
-//             return Err("Could not invert correlation matrix".to_string());
-//         }
-//     };
-
-//     let n_vars = var_names.len();
-//     let mut anti_image_covariance = HashMap::new();
-//     let mut anti_image_correlation = HashMap::new();
-
-//     for i in 0..n_vars {
-//         let var_name = &var_names[i];
-//         let mut var_cov = HashMap::new();
-//         let mut var_corr = HashMap::new();
-
-//         for j in 0..n_vars {
-//             let other_var = &var_names[j];
-
-//             // Anti-image covariance: -partial covariances (negative of off-diagonal elements of inverse)
-//             let cov_value = if i == j {
-//                 // 1.0 / inverse[(i, j)]
-//                 1.0 / inverse[(i, i)]
-//             } else {
-//                 -inverse[(i, j)] / (inverse[(i, i)] * inverse[(j, j)])
-//             };
-
-//             var_cov.insert(other_var.clone(), cov_value);
-
-//             // Anti-image correlation: partial correlations with sign reversed
-//             let corr_value = if i != j {
-//                 -inverse[(i, j)] / (inverse[(i, i)] * inverse[(j, j)]).sqrt()
-//             } else {
-//                 0.0 // temporary, will be replaced by MSA
-//             };
-
-
-//             var_corr.insert(other_var.clone(), corr_value);
-//         }
-
-//         anti_image_covariance.insert(var_name.clone(), var_cov);
-//         anti_image_correlation.insert(var_name.clone(), var_corr);
-//     }
-
-//     Ok(AntiImageMatrices {
-//         anti_image_covariance,
-//         anti_image_correlation,
-//         variable_order: var_names,
-//     })
-// }
-
-
 pub fn calculate_anti_image_matrices(
     data: &AnalysisData,
-    _config: &FactorAnalysisConfig
+    config: &FactorAnalysisConfig
 ) -> Result<AntiImageMatrices, String> {
-    let (data_matrix, var_names) = extract_data_matrix(data, _config)?;
+    let (data_matrix, var_names) = extract_data_matrix(data, config)?;
     let corr_matrix = calculate_matrix(&data_matrix, "correlation")?;
 
-    let inverse = corr_matrix
-        .try_inverse()
-        .ok_or("Could not invert correlation matrix")?;
+    let inverse = match corr_matrix.try_inverse() {
+        Some(inv) => inv,
+        None => {
+            return Err("Could not invert correlation matrix".to_string());
+        }
+    };
 
     let n_vars = var_names.len();
-
-    // ===============================
-    // 1. TEMP STORAGE (WAJIB)
-    // ===============================
-    let mut anti_cov = vec![vec![0.0; n_vars]; n_vars];
-    let mut anti_corr = vec![vec![0.0; n_vars]; n_vars];
-
-    // ===============================
-    // 2. HITUNG ANTI-IMAGE (OFF DIAGONAL)
-    // ===============================
-    for i in 0..n_vars {
-        for j in 0..n_vars {
-            if i == j {
-                // Anti-image covariance diagonal
-                anti_cov[i][j] = 1.0 / inverse[(i, i)];
-            } else {
-                // Anti-image covariance off-diagonal
-                anti_cov[i][j] =
-                    -inverse[(i, j)] / (inverse[(i, i)] * inverse[(j, j)]);
-
-                // Anti-image correlation off-diagonal
-                anti_corr[i][j] =
-                    -inverse[(i, j)] / (inverse[(i, i)] * inverse[(j, j)]).sqrt();
-            }
-        }
-    }
-
-    // ===============================
-    // 3. HITUNG MSA (DIAGONAL)
-    // ===============================
-    let mut msa = vec![0.0; n_vars];
-
-    for i in 0..n_vars {
-        let mut sum_sq = 0.0;
-        for j in 0..n_vars {
-            if i != j {
-                sum_sq += anti_corr[i][j].powi(2);
-            }
-        }
-        msa[i] = 1.0 - sum_sq;
-        anti_corr[i][i] = msa[i]; // ✅ INI YANG KAMU CARI
-    }
-
-    // ===============================
-    // 4. KONVERSI KE HASHMAP (OUTPUT)
-    // ===============================
     let mut anti_image_covariance = HashMap::new();
     let mut anti_image_correlation = HashMap::new();
 
     for i in 0..n_vars {
-        let mut cov_row = HashMap::new();
-        let mut corr_row = HashMap::new();
+        let var_name = &var_names[i];
+        let mut var_cov = HashMap::new();
+        let mut var_corr = HashMap::new();
 
         for j in 0..n_vars {
-            cov_row.insert(var_names[j].clone(), anti_cov[i][j]);
-            corr_row.insert(var_names[j].clone(), anti_corr[i][j]);
+            let other_var = &var_names[j];
+
+            // Anti-image covariance: -partial covariances (negative of off-diagonal elements of inverse)
+            let cov_value = if i == j {
+                1.0 / inverse[(i, j)]
+            } else {
+                inverse[(i, j)] / (inverse[(i, i)] * inverse[(j, j)])
+            };
+
+            var_cov.insert(other_var.clone(), cov_value);
+
+            // Anti-image correlation: partial correlations with sign reversed
+            let corr_value = if i == j {
+                1.0
+            } else {
+               inverse[(i, j)] / (inverse[(i, i)] * inverse[(j, j)]).sqrt()
+            };
+
+            var_corr.insert(other_var.clone(), corr_value);
         }
 
-        anti_image_covariance.insert(var_names[i].clone(), cov_row);
-        anti_image_correlation.insert(var_names[i].clone(), corr_row);
+        anti_image_covariance.insert(var_name.clone(), var_cov);
+        anti_image_correlation.insert(var_name.clone(), var_corr);
     }
 
     Ok(AntiImageMatrices {
@@ -467,3 +383,6 @@ pub fn calculate_anti_image_matrices(
         variable_order: var_names,
     })
 }
+
+
+
