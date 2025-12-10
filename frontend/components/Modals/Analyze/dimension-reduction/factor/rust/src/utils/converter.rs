@@ -260,22 +260,22 @@ impl FormatResult {
         });
 
         let communalities = result.communalities.as_ref().map(|comm| {
-            let initial = comm.initial
+            let initial = comm.variable_order
                 .iter()
-                .map(|(var_name, value)| {
+                .map(|var_name| {
                     VariableValue {
                         variable: var_name.clone(),
-                        value: *value,
+                        value: *comm.initial.get(var_name).unwrap_or(&0.0),
                     }
                 })
                 .collect();
 
-            let extraction = comm.extraction
+            let extraction = comm.variable_order
                 .iter()
-                .map(|(var_name, value)| {
+                .map(|var_name| {
                     VariableValue {
                         variable: var_name.clone(),
-                        value: *value,
+                        value: *comm.extraction.get(var_name).unwrap_or(&0.0),
                     }
                 })
                 .collect();
@@ -287,12 +287,12 @@ impl FormatResult {
         });
 
         let component_matrix = result.component_matrix.as_ref().map(|matrix| {
-            let components = matrix.components
+            let components = matrix.variable_order
                 .iter()
-                .map(|(var_name, values)| {
+                .map(|var_name| {
                     ComponentEntry {
                         variable: var_name.clone(),
-                        values: values.clone(),
+                        values: matrix.components.get(var_name).cloned().unwrap_or_default(),
                     }
                 })
                 .collect();
@@ -360,12 +360,12 @@ impl FormatResult {
         });
 
         let rotated_component_matrix = result.rotated_component_matrix.as_ref().map(|matrix| {
-            let components = matrix.components
+            let components = matrix.variable_order
                 .iter()
-                .map(|(var_name, values)| {
+                .map(|var_name| {
                     ComponentEntry {
                         variable: var_name.clone(),
-                        values: values.clone(),
+                        values: matrix.components.get(var_name).cloned().unwrap_or_default(),
                     }
                 })
                 .collect();
@@ -378,20 +378,18 @@ impl FormatResult {
         let component_score_coefficient_matrix = result.component_score_coefficient_matrix
             .as_ref()
             .map(|matrix| {
-                let components = matrix.components
+                let components = matrix.variable_order
                     .iter()
-                    .map(|(var_name, values)| {
+                    .map(|var_name| {
                         ComponentEntry {
                             variable: var_name.clone(),
-                            values: values.clone(),
+                            values: matrix.components.get(var_name).cloned().unwrap_or_default(),
                         }
                     })
                     .collect();
 
                 FormattedComponentScoreCoefficient {
                     components,
-                }
-            });
 
         FormatResult {
             descriptive_statistics: result.descriptive_statistics.clone(),
