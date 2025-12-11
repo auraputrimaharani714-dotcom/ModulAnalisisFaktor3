@@ -371,3 +371,86 @@ pub fn calculate_anti_image_matrices(
         variable_order: var_names,
     })
 }
+
+pub fn calculate_covariance_matrix_with_determinant(
+    data: &AnalysisData,
+    config: &FactorAnalysisConfig
+) -> Result<CovarianceMatrix, String> {
+    let (data_matrix, var_names) = extract_data_matrix(data, config)?;
+    let cov_matrix = calculate_matrix(&data_matrix, "covariance")?;
+
+    let n_vars = var_names.len();
+    if cov_matrix.nrows() != n_vars || cov_matrix.ncols() != n_vars {
+        return Err(
+            format!(
+                "Matrix dimensions {}x{} don't match variable count {}",
+                cov_matrix.nrows(),
+                cov_matrix.ncols(),
+                n_vars
+            )
+        );
+    }
+
+    // Calculate determinant
+    let determinant = cov_matrix.determinant();
+
+    // Build covariances map
+    let mut covariances = HashMap::new();
+    for i in 0..n_vars {
+        let var_name = &var_names[i];
+        let mut var_covariances = HashMap::new();
+
+        for j in 0..n_vars {
+            let other_var = &var_names[j];
+            var_covariances.insert(other_var.clone(), cov_matrix[(i, j)]);
+        }
+
+        covariances.insert(var_name.clone(), var_covariances);
+    }
+
+    Ok(CovarianceMatrix {
+        covariances,
+        variable_order: var_names,
+        determinant,
+    })
+}
+
+pub fn calculate_inverse_covariance_matrix(
+    data: &AnalysisData,
+    config: &FactorAnalysisConfig
+) -> Result<InverseCovarianceMatrix, String> {
+    let (data_matrix, var_names) = extract_data_matrix(data, config)?;
+    let cov_matrix = calculate_matrix(&data_matrix, "covariance")?;
+
+    // Calculate determinant of original covariance matrix
+    let original_determinant = cov_matrix.determinant();
+
+    // Calculate inverse
+    let inverse = match cov_matrix.try_inverse() {
+        Some(inv) => inv,
+        None => {
+            return Err("Could not invert covariance matrix".to_string());
+        }
+    };
+
+    let n_vars = var_names.len();
+    let mut inverse_covariances = HashMap::new();
+
+    for i in 0..n_vars {
+        let var_name = &var_names[i];
+        let mut var_inverse = HashMap::new();
+
+        for j in 0..n_vars {
+            let other_var = &var_names[j];
+            var_inverse.insert(other_var.clone(), inverse[(i, j)]);
+        }
+
+        inverse_covariances.insert(var_name.clone(), var_inverse);
+    }
+
+    Ok(InverseCovarianceMatrix {
+        inverse_covariances,
+        variable_order: var_names,
+        determinant: original_determinant,
+    })
+}
