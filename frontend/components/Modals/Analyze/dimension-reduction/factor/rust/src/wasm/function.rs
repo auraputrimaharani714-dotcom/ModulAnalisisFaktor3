@@ -46,35 +46,37 @@ pub fn run_analysis(
         }
     }
 
-    // Step 2: Calculate Correlation/Covariance Matrix based on Analyze selection
+    // Step 2: Calculate Correlation Matrix (always calculated)
     let mut correlation_matrix = None;
-    if config.extraction.correlation {
-        executed_functions.push("calculate_correlation_matrix".to_string());
-        match core::calculate_correlation_matrix(&filtered_data, config) {
-            Ok(matrix) => {
-                correlation_matrix = Some(matrix);
-            }
-            Err(e) => {
-                error_collector.add_error("calculate_correlation_matrix", &e);
-                // Continue execution despite errors for non-critical functions
-            }
+    executed_functions.push("calculate_correlation_matrix".to_string());
+    match core::calculate_correlation_matrix(&filtered_data, config) {
+        Ok(matrix) => {
+            correlation_matrix = Some(matrix);
         }
-    } else if config.extraction.covariance {
-        executed_functions.push("calculate_covariance_matrix".to_string());
-        match core::calculate_covariance_matrix(&filtered_data, config) {
+        Err(e) => {
+            error_collector.add_error("calculate_correlation_matrix", &e);
+            // Continue execution despite errors for non-critical functions
+        }
+    }
+
+    // Step 2b: Calculate Covariance Matrix if selected
+    let mut covariance_matrix = None;
+    if config.extraction.covariance {
+        executed_functions.push("calculate_covariance_matrix_with_determinant".to_string());
+        match core::calculate_covariance_matrix_with_determinant(&filtered_data, config) {
             Ok(matrix) => {
-                correlation_matrix = Some(matrix); // Store in the same field
+                covariance_matrix = Some(matrix);
             }
             Err(e) => {
-                error_collector.add_error("calculate_covariance_matrix", &e);
+                error_collector.add_error("calculate_covariance_matrix_with_determinant", &e);
                 // Continue execution despite errors for non-critical functions
             }
         }
     }
 
-    // Step 3: Calculate Inverse Matrix if requested
+    // Step 3: Calculate Inverse Correlation Matrix if requested
     let mut inverse_correlation_matrix = None;
-    if config.descriptives.inverse {
+    if config.descriptives.inverse && config.extraction.correlation {
         executed_functions.push("calculate_inverse_correlation_matrix".to_string());
         match core::calculate_inverse_correlation_matrix(&filtered_data, config) {
             Ok(matrix) => {
@@ -86,6 +88,20 @@ pub fn run_analysis(
             }
         }
     }
+
+    // Step 3b: Calculate Inverse Covariance Matrix if requested
+    let mut inverse_covariance_matrix = None;
+    if config.descriptives.inverse && config.extraction.covariance {
+        executed_functions.push("calculate_inverse_covariance_matrix".to_string());
+        match core::calculate_inverse_covariance_matrix(&filtered_data, config) {
+            Ok(matrix) => {
+                inverse_covariance_matrix = Some(matrix);
+            }
+            Err(e) => {
+                error_collector.add_error("calculate_inverse_covariance_matrix", &e);
+                // Continue execution despite errors for non-critical functions
+            }
+        }
 
     // Step 4: Calculate KMO and Bartlett's Test if requested
     let mut kmo_bartletts_test = None;
