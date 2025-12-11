@@ -8,8 +8,10 @@ use crate::models::{
     result::{
         AntiImageMatrices,
         CorrelationMatrix,
+        CovarianceMatrix,
         DescriptiveStatistic,
         InverseCorrelationMatrix,
+        InverseCovarianceMatrix,
     },
 };
 
