@@ -274,6 +274,8 @@ pub fn run_analysis(
         scree_plot,
         correlation_matrix,
         inverse_correlation_matrix,
+        covariance_matrix,
+        inverse_covariance_matrix,
         kmo_bartletts_test,
         anti_image_matrices,
         communalities,
