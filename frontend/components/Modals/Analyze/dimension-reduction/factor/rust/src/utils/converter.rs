@@ -476,6 +476,8 @@ impl FormatResult {
             scree_plot: result.scree_plot.clone(),
             correlation_matrix,
             inverse_correlation_matrix,
+            covariance_matrix,
+            inverse_covariance_matrix,
             kmo_bartletts_test: result.kmo_bartletts_test.clone(),
             anti_image_matrices,
             communalities,
