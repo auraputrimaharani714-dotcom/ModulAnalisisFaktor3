@@ -102,6 +102,7 @@ pub fn run_analysis(
                 // Continue execution despite errors for non-critical functions
             }
         }
+    }
 
     // Step 4: Calculate KMO and Bartlett's Test if requested
     let mut kmo_bartletts_test = None;
