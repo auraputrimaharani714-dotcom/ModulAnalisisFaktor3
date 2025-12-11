@@ -31,6 +31,8 @@ struct FormatResult {
     scree_plot: Option<ScreePlot>,
     correlation_matrix: Option<FormattedCorrelation>,
     inverse_correlation_matrix: Option<FormattedInverseCorrelation>,
+    covariance_matrix: Option<FormattedCovariance>,
+    inverse_covariance_matrix: Option<FormattedInverseCovariance>,
     kmo_bartletts_test: Option<KMOBartlettsTest>,
     anti_image_matrices: Option<FormattedAntiImage>,
     communalities: Option<FormattedCommunalities>,
@@ -64,6 +66,18 @@ struct VariableValue {
 #[derive(Serialize)]
 struct FormattedInverseCorrelation {
     inverse_correlations: Vec<CorrelationEntry>,
+}
+
+#[derive(Serialize)]
+struct FormattedCovariance {
+    covariances: Vec<CorrelationEntry>,
+    determinant: f64,
+}
+
+#[derive(Serialize)]
+struct FormattedInverseCovariance {
+    inverse_covariances: Vec<CorrelationEntry>,
+    determinant: f64,
 }
 
 #[derive(Serialize)]
