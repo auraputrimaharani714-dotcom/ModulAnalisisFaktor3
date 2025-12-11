@@ -216,6 +216,70 @@ impl FormatResult {
             }
         });
 
+        let covariance_matrix = result.covariance_matrix.as_ref().map(|matrix| {
+            let covariances = matrix.variable_order
+                .iter()
+                .map(|var_name| {
+                    let values = matrix.covariances
+                        .get(var_name)
+                        .map(|var_values| {
+                            matrix.variable_order
+                                .iter()
+                                .map(|other_var| {
+                                    VariableValue {
+                                        variable: other_var.clone(),
+                                        value: *var_values.get(other_var).unwrap_or(&0.0),
+                                    }
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
+                    CorrelationEntry {
+                        variable: var_name.clone(),
+                        values,
+                    }
+                })
+                .collect();
+
+            FormattedCovariance {
+                covariances,
+                determinant: matrix.determinant,
+            }
+        });
+
+        let inverse_covariance_matrix = result.inverse_covariance_matrix.as_ref().map(|matrix| {
+            let inverse_covariances = matrix.variable_order
+                .iter()
+                .map(|var_name| {
+                    let values = matrix.inverse_covariances
+                        .get(var_name)
+                        .map(|var_values| {
+                            matrix.variable_order
+                                .iter()
+                                .map(|other_var| {
+                                    VariableValue {
+                                        variable: other_var.clone(),
+                                        value: *var_values.get(other_var).unwrap_or(&0.0),
+                                    }
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
+                    CorrelationEntry {
+                        variable: var_name.clone(),
+                        values,
+                    }
+                })
+                .collect();
+
+            FormattedInverseCovariance {
+                inverse_covariances,
+                determinant: matrix.determinant,
+            }
+        });
+
         let anti_image_matrices = result.anti_image_matrices.as_ref().map(|matrices| {
             let anti_image_covariance = matrices.variable_order
                 .iter()
