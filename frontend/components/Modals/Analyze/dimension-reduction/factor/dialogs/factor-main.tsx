@@ -62,13 +62,25 @@ export const FactorContainer = ({ onClose }: FactorContainerProps) => {
         field: keyof (typeof formData)[T],
         value: unknown
     ) => {
-        setFormData((prev) => ({
-            ...prev,
-            [section]: {
-                ...prev[section],
-                [field]: value,
-            },
-        }));
+        setFormData((prev) => {
+            const updated = {
+                ...prev,
+                [section]: {
+                    ...prev[section],
+                    [field]: value,
+                },
+            };
+
+            // Auto-enable Inverse when Covariance is selected in Extraction
+            if (section === "extraction" && field === "Covariance" && value === true) {
+                updated.descriptives = {
+                    ...updated.descriptives,
+                    Inverse: true,
+                };
+            }
+
+            return updated;
+        });
     };
 
     const executeFactor = async (mainData: FactorMainType) => {

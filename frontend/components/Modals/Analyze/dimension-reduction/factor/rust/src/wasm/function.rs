@@ -62,13 +62,13 @@ pub fn run_analysis(
     // Step 2b: Calculate Covariance Matrix if selected
     let mut covariance_matrix = None;
     if config.extraction.covariance {
-        executed_functions.push("calculate_covariance_matrix_with_determinant".to_string());
-        match core::calculate_covariance_matrix_with_determinant(&filtered_data, config) {
+        executed_functions.push("calculate_covariance_matrix".to_string());
+        match core::calculate_covariance_matrix(&filtered_data, config) {
             Ok(matrix) => {
                 covariance_matrix = Some(matrix);
             }
             Err(e) => {
-                error_collector.add_error("calculate_covariance_matrix_with_determinant", &e);
+                error_collector.add_error("calculate_covariance_matrix", &e);
                 // Continue execution despite errors for non-critical functions
             }
         }

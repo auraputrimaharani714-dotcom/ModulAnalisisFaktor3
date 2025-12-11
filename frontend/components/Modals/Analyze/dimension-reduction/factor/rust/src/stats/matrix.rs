@@ -209,7 +209,7 @@ pub fn calculate_correlation_matrix(
 pub fn calculate_covariance_matrix(
     data: &AnalysisData,
     config: &FactorAnalysisConfig
-) -> Result<CorrelationMatrix, String> {
+) -> Result<CovarianceMatrix, String> {
     let (data_matrix, var_names) = extract_data_matrix(data, config)?;
     let matrix = calculate_matrix(&data_matrix, "covariance")?;
 
@@ -225,73 +225,26 @@ pub fn calculate_covariance_matrix(
         );
     }
 
-    let mut correlations = HashMap::new();
-    let mut sig_values = HashMap::new();
+    let mut covariances = HashMap::new();
 
     for i in 0..n_vars {
         let var_name = &var_names[i];
-        let mut var_correlations = HashMap::new();
-        let mut var_sig_values = HashMap::new();
+        let mut var_covariances = HashMap::new();
 
         for j in 0..n_vars {
             let other_var = &var_names[j];
-            var_correlations.insert(other_var.clone(), matrix[(i, j)]);
-
-            // Calculate significance (p-value) only if requested
-            if config.descriptives.significance_lvl {
-                let p_value = if i == j {
-                    0.0
-                } else {
-                    // For covariance matrix, convert to correlation first for significance calculation
-                    let n = data_matrix.nrows() as f64;
-
-                    // Convert covariance to correlation
-                    let std_i = (matrix[(i, i)]).sqrt();
-                    let std_j = (matrix[(j, j)]).sqrt();
-                    let r = if std_i > 0.0 && std_j > 0.0 {
-                        matrix[(i, j)] / (std_i * std_j)
-                    } else {
-                        0.0
-                    };
-
-                    let r_clamped = r.max(-0.99999).min(0.99999);
-
-                    // Calculate t-statistic: t = r * sqrt(n-2) / sqrt(1-r^2)
-                    let numerator = r_clamped * ((n - 2.0).sqrt());
-                    let denominator = (1.0 - r_clamped * r_clamped).sqrt();
-                    let t_stat = numerator / denominator;
-
-                    // Calculate 2-tailed p-value using t distribution with df = n-2
-                    // incomplete_beta gives CDF: P(T <= |t|)
-                    // We need: P(T > |t|) = 1 - CDF(|t|)
-                    // let df = n - 2.0;
-                    // let abs_t = t_stat.abs();
-                    // let x = df / (df + abs_t * abs_t);
-                    // let cdf = incomplete_beta(0.5 * df, 0.5, x);  // P(T <= |t|)
-                    // let p_two_tailed = 2.0 * (1.0 - cdf);          // P(T > |t|) two-tailed
-
-                    let df = n - 2.0;
-                    let t_dist = StudentsT::new(0.0, 1.0, df).unwrap();
-                    // 1-tailed p-value (same formula SPSS uses for "Sig. (1-tailed)")
-                    let p_one_tailed = 1.0 - t_dist.cdf(t_stat.abs());       
-
-                    // Convert to 1-tailed p-value: P_1-tailed = P_2-tailed / 2
-                    p_one_tailed          
-
-                };
-
-                var_sig_values.insert(other_var.clone(), p_value);
-            }
+            var_covariances.insert(other_var.clone(), matrix[(i, j)]);
         }
 
-        correlations.insert(var_name.clone(), var_correlations);
-        sig_values.insert(var_name.clone(), var_sig_values);
+        covariances.insert(var_name.clone(), var_covariances);
     }
 
-    Ok(CorrelationMatrix {
-        correlations,
-        sig_values,
+    let determinant = matrix.determinant();
+
+    Ok(CovarianceMatrix {
+        covariances,
         variable_order: var_names,
+        determinant,
     })
 }
 
@@ -327,6 +280,44 @@ pub fn calculate_inverse_correlation_matrix(
     Ok(InverseCorrelationMatrix {
         inverse_correlations,
         variable_order: var_names,
+    })
+}
+
+pub fn calculate_inverse_covariance_matrix(
+    data: &AnalysisData,
+    config: &FactorAnalysisConfig
+) -> Result<InverseCovarianceMatrix, String> {
+    let (data_matrix, var_names) = extract_data_matrix(data, config)?;
+    let cov_matrix = calculate_matrix(&data_matrix, "covariance")?;
+
+    let determinant = cov_matrix.determinant();
+
+    let inverse = match cov_matrix.try_inverse() {
+        Some(inv) => inv,
+        None => {
+            return Err("Could not invert covariance matrix".to_string());
+        }
+    };
+
+    let n_vars = var_names.len();
+    let mut inverse_covariances = HashMap::new();
+
+    for i in 0..n_vars {
+        let var_name = &var_names[i];
+        let mut var_inverse = HashMap::new();
+
+        for j in 0..n_vars {
+            let other_var = &var_names[j];
+            var_inverse.insert(other_var.clone(), inverse[(i, j)]);
+        }
+
+        inverse_covariances.insert(var_name.clone(), var_inverse);
+    }
+
+    Ok(InverseCovarianceMatrix {
+        inverse_covariances,
+        variable_order: var_names,
+        determinant,
     })
 }
 
