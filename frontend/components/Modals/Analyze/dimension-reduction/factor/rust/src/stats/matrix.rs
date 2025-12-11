@@ -10,8 +10,10 @@ use crate::models::{
     result::{
         AntiImageMatrices,
         CorrelationMatrix,
+        CovarianceMatrix,
         DescriptiveStatistic,
         InverseCorrelationMatrix,
+        InverseCovarianceMatrix,
     },
 };
 
@@ -383,6 +385,3 @@ pub fn calculate_anti_image_matrices(
         variable_order: var_names,
     })
 }
-
-
-

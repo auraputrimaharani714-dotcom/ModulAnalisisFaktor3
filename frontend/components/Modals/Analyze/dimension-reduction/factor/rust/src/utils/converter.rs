@@ -4,8 +4,10 @@ use serde::Serialize;
 use crate::models::result::{
     ComponentScoreCovarianceMatrix,
     ComponentTransformationMatrix,
+    CovarianceMatrix,
     DescriptiveStatistic,
     FactorAnalysisResult,
+    InverseCovarianceMatrix,
     KMOBartlettsTest,
     ScreePlot,
     TotalVarianceExplained,
@@ -31,6 +33,8 @@ struct FormatResult {
     scree_plot: Option<ScreePlot>,
     correlation_matrix: Option<FormattedCorrelation>,
     inverse_correlation_matrix: Option<FormattedInverseCorrelation>,
+    covariance_matrix: Option<FormattedCovariance>,
+    inverse_covariance_matrix: Option<FormattedInverseCovariance>,
     kmo_bartletts_test: Option<KMOBartlettsTest>,
     anti_image_matrices: Option<FormattedAntiImage>,
     communalities: Option<FormattedCommunalities>,
@@ -64,6 +68,18 @@ struct VariableValue {
 #[derive(Serialize)]
 struct FormattedInverseCorrelation {
     inverse_correlations: Vec<CorrelationEntry>,
+}
+
+#[derive(Serialize)]
+struct FormattedCovariance {
+    covariances: Vec<CorrelationEntry>,
+    determinant: f64,
+}
+
+#[derive(Serialize)]
+struct FormattedInverseCovariance {
+    inverse_covariances: Vec<CorrelationEntry>,
+    determinant: f64,
 }
 
 #[derive(Serialize)]
@@ -199,6 +215,70 @@ impl FormatResult {
 
             FormattedInverseCorrelation {
                 inverse_correlations,
+            }
+        });
+
+        let covariance_matrix = result.covariance_matrix.as_ref().map(|matrix| {
+            let covariances = matrix.variable_order
+                .iter()
+                .map(|var_name| {
+                    let values = matrix.covariances
+                        .get(var_name)
+                        .map(|var_values| {
+                            matrix.variable_order
+                                .iter()
+                                .map(|other_var| {
+                                    VariableValue {
+                                        variable: other_var.clone(),
+                                        value: *var_values.get(other_var).unwrap_or(&0.0),
+                                    }
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
+                    CorrelationEntry {
+                        variable: var_name.clone(),
+                        values,
+                    }
+                })
+                .collect();
+
+            FormattedCovariance {
+                covariances,
+                determinant: matrix.determinant,
+            }
+        });
+
+        let inverse_covariance_matrix = result.inverse_covariance_matrix.as_ref().map(|matrix| {
+            let inverse_covariances = matrix.variable_order
+                .iter()
+                .map(|var_name| {
+                    let values = matrix.inverse_covariances
+                        .get(var_name)
+                        .map(|var_values| {
+                            matrix.variable_order
+                                .iter()
+                                .map(|other_var| {
+                                    VariableValue {
+                                        variable: other_var.clone(),
+                                        value: *var_values.get(other_var).unwrap_or(&0.0),
+                                    }
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
+                    CorrelationEntry {
+                        variable: var_name.clone(),
+                        values,
+                    }
+                })
+                .collect();
+
+            FormattedInverseCovariance {
+                inverse_covariances,
+                determinant: matrix.determinant,
             }
         });
 
@@ -398,6 +478,8 @@ impl FormatResult {
             scree_plot: result.scree_plot.clone(),
             correlation_matrix,
             inverse_correlation_matrix,
+            covariance_matrix,
+            inverse_covariance_matrix,
             kmo_bartletts_test: result.kmo_bartletts_test.clone(),
             anti_image_matrices,
             communalities,
