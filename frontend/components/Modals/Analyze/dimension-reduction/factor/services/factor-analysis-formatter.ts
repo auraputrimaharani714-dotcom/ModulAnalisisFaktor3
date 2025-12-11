@@ -139,6 +139,85 @@ export function transformFactorAnalysisResult(data: any): ResultJson {
         resultJson.tables.push(table);
     }
 
+    // 3b. Covariance Matrix
+    if (data.covariance_matrix) {
+        const variables =
+            data.covariance_matrix.covariances.map(
+                (entry: any) => entry.variable
+            );
+
+        const table: Table = {
+            key: "covariance_matrix",
+            title: "Covariance Matrix",
+            columnHeaders: [
+                { header: "", key: "var" },
+                ...variables.map((variable: string, index: number) => ({
+                    header: variable,
+                    key: `var_${index}`,
+                })),
+            ],
+            rows: [],
+        };
+
+        data.covariance_matrix.covariances.forEach(
+            (entry: any, rowIndex: number) => {
+                const rowData: any = {
+                    rowHeader: [entry.variable],
+                };
+
+                entry.values.forEach((val: any, colIndex: number) => {
+                    rowData[`var_${colIndex}`] = formatDisplayNumber(val.value);
+                });
+
+                table.rows.push(rowData);
+            }
+        );
+
+        // Add determinant note
+        table.rows.push({
+            rowHeader: [`a. Determinant = ${formatDisplayNumber(data.covariance_matrix.determinant)}`],
+        });
+
+        resultJson.tables.push(table);
+    }
+
+    // 3c. Inverse of Covariance Matrix
+    if (data.inverse_covariance_matrix) {
+        const variables =
+            data.inverse_covariance_matrix.inverse_covariances.map(
+                (entry: any) => entry.variable
+            );
+
+        const table: Table = {
+            key: "inverse_covariance_matrix",
+            title: "Inverse of Covariance Matrix",
+            columnHeaders: [
+                { header: "", key: "var" },
+                ...variables.map((variable: string, index: number) => ({
+                    header: variable,
+                    key: `var_${index}`,
+                })),
+            ],
+            rows: [],
+        };
+
+        data.inverse_covariance_matrix.inverse_covariances.forEach(
+            (entry: any, rowIndex: number) => {
+                const rowData: any = {
+                    rowHeader: [entry.variable],
+                };
+
+                entry.values.forEach((val: any, colIndex: number) => {
+                    rowData[`var_${colIndex}`] = formatDisplayNumber(val.value);
+                });
+
+                table.rows.push(rowData);
+            }
+        );
+
+        resultJson.tables.push(table);
+    }
+
     // 4. KMO and Bartlett's Test
     if (data.kmo_bartletts_test) {
         const table: Table = {
