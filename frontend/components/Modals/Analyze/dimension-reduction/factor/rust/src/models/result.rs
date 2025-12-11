@@ -12,6 +12,10 @@ pub struct FactorAnalysisResult {
     pub correlation_matrix: Option<CorrelationMatrix>,
     #[serde(rename = "inverse_correlation_matrix")]
     pub inverse_correlation_matrix: Option<InverseCorrelationMatrix>,
+    #[serde(rename = "covariance_matrix")]
+    pub covariance_matrix: Option<CovarianceMatrix>,
+    #[serde(rename = "inverse_covariance_matrix")]
+    pub inverse_covariance_matrix: Option<InverseCovarianceMatrix>,
     #[serde(rename = "kmo_bartletts_test")]
     pub kmo_bartletts_test: Option<KMOBartlettsTest>,
     #[serde(rename = "anti_image_matrices")]
@@ -65,6 +69,22 @@ pub struct InverseCorrelationMatrix {
     pub inverse_correlations: HashMap<String, HashMap<String, f64>>,
     #[serde(rename = "variable_order")]
     pub variable_order: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CovarianceMatrix {
+    pub covariances: HashMap<String, HashMap<String, f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
+    pub determinant: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct InverseCovarianceMatrix {
+    pub inverse_covariances: HashMap<String, HashMap<String, f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
+    pub determinant: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
