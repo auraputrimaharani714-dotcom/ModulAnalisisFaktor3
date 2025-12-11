@@ -4,8 +4,10 @@ use serde::Serialize;
 use crate::models::result::{
     ComponentScoreCovarianceMatrix,
     ComponentTransformationMatrix,
+    CovarianceMatrix,
     DescriptiveStatistic,
     FactorAnalysisResult,
+    InverseCovarianceMatrix,
     KMOBartlettsTest,
     ScreePlot,
     TotalVarianceExplained,
