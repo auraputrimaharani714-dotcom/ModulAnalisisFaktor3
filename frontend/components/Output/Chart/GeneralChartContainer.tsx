@@ -103,9 +103,16 @@ const GeneralChartContainer: React.FC<GeneralChartContainerProps> = ({
 
   // Parse data jika berbentuk string
   const parsedData = useMemo(
-    () => (typeof data === "string" ? JSON.parse(data) : data),
+    () => {
+      try {
+        return typeof data === "string" ? JSON.parse(data) : data;
+      } catch (error) {
+        console.error("Failed to parse chart data:", error);
+        return { charts: [] };
+      }
+    },
     [data]
-    );
+  );
   console.log("parsedData", parsedData);
   // Helper function to convert string axisScaleOptions to number
   const convertAxisScaleOptions = (options?: {

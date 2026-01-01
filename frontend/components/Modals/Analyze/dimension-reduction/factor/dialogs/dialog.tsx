@@ -23,7 +23,9 @@ export const FactorDialog = ({
     globalVariables,
     onContinue,
     onReset,
-}: FactorDialogProps) => {
+    containerType = "dialog",
+    onClose,
+}: FactorDialogProps & { containerType?: "dialog" | "sidebar", onClose?: () => void }) => {
     const [mainState, setMainState] = useState<FactorMainType>({ ...data });
     const [availableVariables, setAvailableVariables] = useState<string[]>([]);
 
@@ -86,7 +88,7 @@ export const FactorDialog = ({
 
     const handleContinue = () => {
         Object.entries(mainState).forEach(([key, value]) => {
-            updateFormData(key as keyof FactorMainType, value);
+            updateFormData("main", key as keyof FactorMainType, value);
         });
 
         setIsMainOpen(false);
@@ -96,7 +98,7 @@ export const FactorDialog = ({
     const openDialog =
         (setter: React.Dispatch<React.SetStateAction<boolean>>) => () => {
             Object.entries(mainState).forEach(([key, value]) => {
-                updateFormData(key as keyof FactorMainType, value);
+                updateFormData("main", key as keyof FactorMainType, value);
             });
             setter(true);
         };
@@ -106,274 +108,291 @@ export const FactorDialog = ({
         closeModal();
     };
 
-    return (
+    const renderContent = () => (
         <>
-            {/* Main Dialog */}
-            <Dialog open={isMainOpen} onOpenChange={handleDialog}>
-                {/* <DialogTrigger asChild>
-                    <Button variant="outline">Factor</Button>
-                </DialogTrigger> */}
-                <DialogContent className="sm:max-w-3xl">
-                    <DialogHeader>
-                        <DialogTitle>Factor Analysis</DialogTitle>
-                    </DialogHeader>
-                    <Separator />
-                    <div className="flex items-center space-x-2">
-                        <ResizablePanelGroup
-                            direction="horizontal"
-                            className="min-h-[200px] rounded-lg border md:min-w-[200px]"
-                        >
-                            {/* Variable List */}
-                            <ResizablePanel defaultSize={25}>
-                                <ScrollArea>
-                                    <div className="flex flex-col gap-1 justify-start items-start h-[275px] w-full p-2">
-                                        {availableVariables.map(
-                                            (
-                                                variable: string,
-                                                index: number
-                                            ) => (
-                                                <Badge
-                                                    key={index}
-                                                    className="w-full text-start text-sm font-light p-2 cursor-pointer"
-                                                    variant="outline"
-                                                    draggable
-                                                    onDragStart={(e) =>
-                                                        e.dataTransfer.setData(
-                                                            "text",
-                                                            variable
-                                                        )
-                                                    }
-                                                >
-                                                    {variable}
-                                                </Badge>
-                                            )
-                                        )}
-                                    </div>
-                                </ScrollArea>
-                            </ResizablePanel>
-                            <ResizableHandle withHandle />
+            <div className="flex items-center space-x-2 flex-grow overflow-hidden">
+                <ResizablePanelGroup
+                    direction="horizontal"
+                    className="min-h-[200px] rounded-lg border md:min-w-[200px]"
+                >
+                    {/* Variable List */}
+                    <ResizablePanel defaultSize={25}>
+                        <ScrollArea>
+                            <div className="flex flex-col gap-1 justify-start items-start h-[275px] w-full p-2">
+                                {availableVariables.map(
+                                    (
+                                        variable: string,
+                                        index: number
+                                    ) => (
+                                        <Badge
+                                            key={index}
+                                            className="w-full text-start text-sm font-light p-2 cursor-pointer"
+                                            variant="outline"
+                                            draggable
+                                            onDragStart={(e) =>
+                                                e.dataTransfer.setData(
+                                                    "text",
+                                                    variable
+                                                )
+                                            }
+                                        >
+                                            {variable}
+                                        </Badge>
+                                    )
+                                )}
+                            </div>
+                        </ScrollArea>
+                    </ResizablePanel>
+                    <ResizableHandle withHandle />
 
-                            {/* Defining Variable */}
-                            <ResizablePanel defaultSize={55}>
-                                <div className="flex flex-col gap-4 p-2">
-                                    <div className="w-full">
+                    {/* Defining Variable */}
+                    <ResizablePanel defaultSize={55}>
+                        <div className="flex flex-col gap-4 p-2">
+                            <div className="w-full">
+                                <div
+                                    onDragOver={(e) =>
+                                        e.preventDefault()
+                                    }
+                                    onDrop={(e) => {
+                                        const variable =
+                                            e.dataTransfer.getData(
+                                                "text"
+                                            );
+                                        handleDrop(
+                                            "TargetVar",
+                                            variable
+                                        );
+                                    }}
+                                >
+                                    <Label className="font-bold">
+                                        Variables:{" "}
+                                    </Label>
+                                    <div className="w-full h-[100px] p-2 border rounded overflow-hidden">
+                                        <ScrollArea>
+                                            <div className="w-full h-[80px]">
+                                                {mainState.TargetVar &&
+                                                mainState.TargetVar
+                                                    .length > 0 ? (
+                                                    <div className="flex flex-col gap-1">
+                                                        {mainState.TargetVar.map(
+                                                            (
+                                                                variable,
+                                                                index
+                                                            ) => (
+                                                                <Badge
+                                                                    key={
+                                                                        index
+                                                                    }
+                                                                    className="text-start text-sm font-light p-2 cursor-pointer"
+                                                                    variant="outline"
+                                                                    onClick={() =>
+                                                                        handleRemoveVariable(
+                                                                            "TargetVar",
+                                                                            variable
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        variable
+                                                                    }
+                                                                </Badge>
+                                                            )
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-sm font-light text-gray-500">
+                                                        Drop variables
+                                                        here.
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </ScrollArea>
+                                    </div>
+                                    <input
+                                        type="hidden"
+                                        value={
+                                            mainState.TargetVar ?? ""
+                                        }
+                                        name="Independents"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <div className="w-full">
+                                    <Label className="font-bold">
+                                        Selection Variable:{" "}
+                                    </Label>
+                                    <div className="flex items-center space-x-2">
                                         <div
+                                            className="w-full min-h-[40px] p-2 border rounded"
+                                            onDrop={(e) => {
+                                                handleDrop(
+                                                    "ValueTarget",
+                                                    e.dataTransfer.getData(
+                                                        "text"
+                                                    )
+                                                );
+                                            }}
                                             onDragOver={(e) =>
                                                 e.preventDefault()
                                             }
-                                            onDrop={(e) => {
-                                                const variable =
-                                                    e.dataTransfer.getData(
-                                                        "text"
-                                                    );
-                                                handleDrop(
-                                                    "TargetVar",
-                                                    variable
-                                                );
-                                            }}
                                         >
-                                            <Label className="font-bold">
-                                                Variables:{" "}
-                                            </Label>
-                                            <div className="w-full h-[100px] p-2 border rounded overflow-hidden">
-                                                <ScrollArea>
-                                                    <div className="w-full h-[80px]">
-                                                        {mainState.TargetVar &&
-                                                        mainState.TargetVar
-                                                            .length > 0 ? (
-                                                            <div className="flex flex-col gap-1">
-                                                                {mainState.TargetVar.map(
-                                                                    (
-                                                                        variable,
-                                                                        index
-                                                                    ) => (
-                                                                        <Badge
-                                                                            key={
-                                                                                index
-                                                                            }
-                                                                            className="text-start text-sm font-light p-2 cursor-pointer"
-                                                                            variant="outline"
-                                                                            onClick={() =>
-                                                                                handleRemoveVariable(
-                                                                                    "TargetVar",
-                                                                                    variable
-                                                                                )
-                                                                            }
-                                                                        >
-                                                                            {
-                                                                                variable
-                                                                            }
-                                                                        </Badge>
-                                                                    )
-                                                                )}
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-sm font-light text-gray-500">
-                                                                Drop variables
-                                                                here.
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </ScrollArea>
-                                            </div>
-                                            <input
-                                                type="hidden"
-                                                value={
-                                                    mainState.TargetVar ?? ""
-                                                }
-                                                name="Independents"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                        <div className="w-full">
-                                            <Label className="font-bold">
-                                                Selection Variable:{" "}
-                                            </Label>
-                                            <div className="flex items-center space-x-2">
-                                                <div
-                                                    className="w-full min-h-[40px] p-2 border rounded"
-                                                    onDrop={(e) => {
-                                                        handleDrop(
-                                                            "ValueTarget",
-                                                            e.dataTransfer.getData(
-                                                                "text"
-                                                            )
-                                                        );
-                                                    }}
-                                                    onDragOver={(e) =>
-                                                        e.preventDefault()
+                                            {mainState.ValueTarget ? (
+                                                <Badge
+                                                    className="text-start text-sm font-light p-2 cursor-pointer"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        handleRemoveVariable(
+                                                            "ValueTarget"
+                                                        )
                                                     }
                                                 >
-                                                    {mainState.ValueTarget ? (
-                                                        <Badge
-                                                            className="text-start text-sm font-light p-2 cursor-pointer"
-                                                            variant="outline"
-                                                            onClick={() =>
-                                                                handleRemoveVariable(
-                                                                    "ValueTarget"
-                                                                )
-                                                            }
-                                                        >
-                                                            {
-                                                                mainState.ValueTarget
-                                                            }
-                                                        </Badge>
-                                                    ) : (
-                                                        <span className="text-sm font-light text-gray-500">
-                                                            Drop variables here.
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <input
-                                                    type="hidden"
-                                                    value={
-                                                        mainState.ValueTarget ??
-                                                        ""
+                                                    {
+                                                        mainState.ValueTarget
                                                     }
-                                                    name="ValueTarget"
-                                                />
-                                            </div>
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-sm font-light text-gray-500">
+                                                    Drop variables here.
+                                                </span>
+                                            )}
                                         </div>
-                                        <div>
-                                            <Button
-                                                type="button"
-                                                variant="secondary"
-                                                disabled={
-                                                    !mainState.TargetVar ||
-                                                    mainState.TargetVar
-                                                        .length === 0
-                                                }
-                                                onClick={openDialog(
-                                                    setIsValueOpen
-                                                )}
-                                            >
-                                                Value...
-                                            </Button>
-                                        </div>
+                                        <input
+                                            type="hidden"
+                                            value={
+                                                mainState.ValueTarget ??
+                                                ""
+                                            }
+                                            name="ValueTarget"
+                                        />
                                     </div>
                                 </div>
-                            </ResizablePanel>
-
-                            {/* Tools Area */}
-                            <ResizablePanel defaultSize={20}>
-                                <div className="flex flex-col h-full items-start justify-start gap-1 p-2">
+                                <div>
                                     <Button
-                                        className="w-full"
                                         type="button"
                                         variant="secondary"
+                                        disabled={
+                                            !mainState.TargetVar ||
+                                            mainState.TargetVar
+                                                .length === 0
+                                        }
                                         onClick={openDialog(
-                                            setIsDescriptivesOpen
+                                            setIsValueOpen
                                         )}
                                     >
-                                        Descriptives...
-                                    </Button>
-                                    <Button
-                                        className="w-full"
-                                        type="button"
-                                        variant="secondary"
-                                        onClick={openDialog(
-                                            setIsExtractionOpen
-                                        )}
-                                    >
-                                        Extraction...
-                                    </Button>
-                                    <Button
-                                        className="w-full"
-                                        type="button"
-                                        variant="secondary"
-                                        onClick={openDialog(setIsRotationOpen)}
-                                    >
-                                        Rotation...
-                                    </Button>
-                                    <Button
-                                        className="w-full"
-                                        type="button"
-                                        variant="secondary"
-                                        onClick={openDialog(setIsScoresOpen)}
-                                    >
-                                        Scores...
-                                    </Button>
-                                    <Button
-                                        className="w-full"
-                                        type="button"
-                                        variant="secondary"
-                                        onClick={openDialog(setIsOptionsOpen)}
-                                    >
-                                        Options...
+                                        Value...
                                     </Button>
                                 </div>
-                            </ResizablePanel>
-                        </ResizablePanelGroup>
-                    </div>
-                    <DialogFooter className="sm:justify-start">
-                        <Button type="button" onClick={handleContinue}>
-                            OK
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                        >
-                            Paste
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={onReset}
-                        >
-                            Reset
-                        </Button>
-                        <DialogClose asChild>
-                            <Button type="button" variant="secondary">
-                                Cancel
+                            </div>
+                        </div>
+                    </ResizablePanel>
+
+                    {/* Tools Area */}
+                    <ResizablePanel defaultSize={20}>
+                        <div className="flex flex-col h-full items-start justify-start gap-1 p-2">
+                            <Button
+                                className="w-full"
+                                type="button"
+                                variant="secondary"
+                                onClick={openDialog(
+                                    setIsDescriptivesOpen
+                                )}
+                            >
+                                Descriptives...
                             </Button>
-                        </DialogClose>
-                        <Button type="button" variant="secondary">
-                            Help
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                            <Button
+                                className="w-full"
+                                type="button"
+                                variant="secondary"
+                                onClick={openDialog(
+                                    setIsExtractionOpen
+                                )}
+                            >
+                                Extraction...
+                            </Button>
+                            <Button
+                                className="w-full"
+                                type="button"
+                                variant="secondary"
+                                onClick={openDialog(setIsRotationOpen)}
+                            >
+                                Rotation...
+                            </Button>
+                            <Button
+                                className="w-full"
+                                type="button"
+                                variant="secondary"
+                                onClick={openDialog(setIsScoresOpen)}
+                            >
+                                Scores...
+                            </Button>
+                            <Button
+                                className="w-full"
+                                type="button"
+                                variant="secondary"
+                                onClick={openDialog(setIsOptionsOpen)}
+                            >
+                                Options...
+                            </Button>
+                        </div>
+                    </ResizablePanel>
+                </ResizablePanelGroup>
+            </div>
+            <div className="px-6 py-3 border-t border-border flex items-center justify-between bg-secondary flex-shrink-0">
+                <div className="flex gap-2">
+                    <Button type="button" onClick={handleContinue}>
+                        OK
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="secondary"
+                    >
+                        Paste
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={onReset}
+                    >
+                        Reset
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => {
+                            setIsMainOpen(false);
+                            if (onClose) onClose();
+                        }}
+                    >
+                        Cancel
+                    </Button>
+                    <Button type="button" variant="secondary">
+                        Help
+                    </Button>
+                </div>
+            </div>
+        </>
+    );
+
+    return (
+        <>
+            {containerType === "sidebar" ? (
+                <div className="flex flex-col overflow-hidden w-full h-full">
+                    <Separator className="flex-shrink-0" />
+                    {renderContent()}
+                </div>
+            ) : (
+                <Dialog open={isMainOpen} onOpenChange={handleDialog}>
+                    <DialogContent className="sm:max-w-3xl p-0 flex flex-col h-[85vh]">
+                        <DialogHeader className="px-6 py-4 border-b border-border flex-shrink-0">
+                            <DialogTitle>Factor Analysis</DialogTitle>
+                        </DialogHeader>
+                        <div className="flex-grow overflow-hidden flex flex-col">
+                            {renderContent()}
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            )}
         </>
     );
 };

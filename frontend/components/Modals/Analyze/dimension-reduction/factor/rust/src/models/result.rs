@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use nalgebra::DMatrix;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+
+// JSON untuk menampilkan output (untuk menyimpan output)
 pub struct FactorAnalysisResult {
     #[serde(rename = "descriptive_statistics")]
     pub descriptive_statistics: Option<Vec<DescriptiveStatistic>>,
@@ -28,6 +30,8 @@ pub struct FactorAnalysisResult {
     pub component_matrix: Option<ComponentMatrix>,
     #[serde(rename = "reproduced_correlations")]
     pub reproduced_correlations: Option<ReproducedCorrelations>,
+    #[serde(rename = "reproduced_covariances")]
+    pub reproduced_covariances: Option<ReproducedCovariances>,
     #[serde(rename = "rotated_component_matrix")]
     pub rotated_component_matrix: Option<RotatedComponentMatrix>,
     #[serde(rename = "component_transformation_matrix")]
@@ -109,10 +113,18 @@ pub struct AntiImageMatrices {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Communalities {
-    pub initial: HashMap<String, f64>,
+    // Varians Mentah (Variabel jika Kovariansi)
+    pub raw_initial: HashMap<String, f64>,
+
+    // Varians Tereskalasi (seharusnya selalu bernilai 1.0)
+    pub rescaled_initial: HashMap<String, f64>,
     pub extraction: HashMap<String, f64>,
     #[serde(rename = "variable_order")]
     pub variable_order: Vec<String>,
+
+    // Track which matrix type was used for extraction
+    #[serde(rename = "extraction_matrix_type")]
+    pub extraction_matrix_type: String, // "correlation" or "covariance"
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -123,6 +135,9 @@ pub struct TotalVarianceExplained {
     pub extraction_sums: Vec<TotalVarianceComponent>,
     #[serde(rename = "rotation_sums")]
     pub rotation_sums: Vec<TotalVarianceComponent>,
+    // Track which matrix type was used for extraction
+    #[serde(rename = "extraction_matrix_type")]
+    pub extraction_matrix_type: String, // "correlation" or "covariance"
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -144,6 +159,14 @@ pub struct ComponentMatrix {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ReproducedCorrelations {
     pub reproduced_correlation: HashMap<String, HashMap<String, f64>>,
+    pub residual: HashMap<String, HashMap<String, f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ReproducedCovariances {
+    pub reproduced_covariance: HashMap<String, HashMap<String, f64>>,
     pub residual: HashMap<String, HashMap<String, f64>>,
     #[serde(rename = "variable_order")]
     pub variable_order: Vec<String>,

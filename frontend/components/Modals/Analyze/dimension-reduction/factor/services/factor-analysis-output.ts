@@ -1,4 +1,3 @@
-// factor-analysis-output.ts
 import {FactorFinalResultType} from "@/components/Modals/Analyze/dimension-reduction/factor/types/factor-worker";
 import {Table} from "@/types/Table";
 import {useResultStore} from "@/stores/useResultStore";
@@ -18,7 +17,7 @@ export async function resultFactorAnalysis({
 
         const factorAnalysisResult = async () => {
             /*
-             * 🎉 Title Result 🎉
+             *  Title Result
              * */
             const titleMessage = "Factor Analysis";
             const logId = await addLog({ log: titleMessage });
@@ -28,7 +27,7 @@ export async function resultFactorAnalysis({
             });
 
             /*
-             * 📊 Descriptive Statistics Result 📊
+             *  Descriptive Statistics Result 
              * */
             const descriptiveStatistics = findTable("descriptive_statistics");
             if (descriptiveStatistics) {
@@ -46,7 +45,7 @@ export async function resultFactorAnalysis({
             }
 
             /*
-             * 📈 Correlation Matrix Result 📈
+             *  Correlation Matrix Result 
              * */
             const correlationMatrix = findTable("correlation_matrix");
             if (correlationMatrix) {
@@ -64,7 +63,7 @@ export async function resultFactorAnalysis({
             }
 
             /*
-             * 📊 Inverse Correlation Matrix Result 📊
+             *  Inverse Correlation Matrix Result 
              * */
             const inverseCorrelationMatrix = findTable(
                 "inverse_correlation_matrix"
@@ -84,7 +83,45 @@ export async function resultFactorAnalysis({
             }
 
             /*
-             * 📈 KMO and Bartlett's Test Result 📈
+             *  Covariance Matrix Result 
+             * */
+            const covarianceMatrix = findTable("covariance_matrix");
+            if (covarianceMatrix) {
+                const covarianceMatrixId = await addAnalytic(logId, {
+                    title: `Covariance Matrix`,
+                    note: "",
+                });
+
+                await addStatistic(covarianceMatrixId, {
+                    title: `Covariance Matrix`,
+                    description: `Covariance Matrix`,
+                    output_data: covarianceMatrix,
+                    components: `Covariance Matrix`,
+                });
+            }
+
+            /*
+             *  Inverse Covariance Matrix Result 
+             * */
+            const inverseCovarianceMatrix = findTable(
+                "inverse_covariance_matrix"
+            );
+            if (inverseCovarianceMatrix) {
+                const inverseCovarianceMatrixId = await addAnalytic(logId, {
+                    title: `Inverse of Covariance Matrix`,
+                    note: "",
+                });
+
+                await addStatistic(inverseCovarianceMatrixId, {
+                    title: `Inverse of Covariance Matrix`,
+                    description: `Inverse of Covariance Matrix`,
+                    output_data: inverseCovarianceMatrix,
+                    components: `Inverse of Covariance Matrix`,
+                });
+            }
+
+            /*
+             *  KMO and Bartlett's Test Result 
              * */
             const kmoBartlettsTest = findTable("kmo_bartletts_test");
             if (kmoBartlettsTest) {
@@ -102,7 +139,7 @@ export async function resultFactorAnalysis({
             }
 
             /*
-             * 🔍 Anti-image Matrices Result 🔍
+             *  Anti-image Matrices Result 
              * */
             const antiImageMatrices = findTable("anti_image_matrices");
             if (antiImageMatrices) {
@@ -120,7 +157,7 @@ export async function resultFactorAnalysis({
             }
 
             /*
-             * 📊 Communalities Result 📊
+             *  Communalities Result 
              * */
             const communalities = findTable("communalities");
             if (communalities) {
@@ -190,6 +227,24 @@ export async function resultFactorAnalysis({
                     description: `Reproduced Correlations`,
                     output_data: reproducedCorrelations,
                     components: `Reproduced Correlations`,
+                });
+            }
+
+            /*
+             * 🔄 Reproduced Covariances Result 🔄
+             * */
+            const reproducedCovariances = findTable("reproduced_covariances");
+            if (reproducedCovariances) {
+                const reproducedCovariancesId = await addAnalytic(logId, {
+                    title: `Reproduced Covariances`,
+                    note: "",
+                });
+
+                await addStatistic(reproducedCovariancesId, {
+                    title: `Reproduced Covariances`,
+                    description: `Reproduced Covariances`,
+                    output_data: reproducedCovariances,
+                    components: `Reproduced Covariances`,
                 });
             }
 

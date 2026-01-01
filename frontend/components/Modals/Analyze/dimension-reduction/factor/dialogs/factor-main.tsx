@@ -1,3 +1,5 @@
+"use client";
+
 import {useEffect, useMemo, useState} from "react";
 import {FactorDialog} from "@/components/Modals/Analyze/dimension-reduction/factor/dialogs/dialog";
 import {
@@ -12,7 +14,9 @@ import {FactorRotation} from "@/components/Modals/Analyze/dimension-reduction/fa
 import {FactorExtraction} from "@/components/Modals/Analyze/dimension-reduction/factor/dialogs/extraction";
 import {FactorDescriptives} from "@/components/Modals/Analyze/dimension-reduction/factor/dialogs/descriptives";
 import {FactorOptions} from "@/components/Modals/Analyze/dimension-reduction/factor/dialogs/options";
-import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogTitle, DialogHeader} from "@/components/ui/dialog";
+import {Button} from "@/components/ui/button";
+import {BaseModalProps} from "@/types/modalTypes";
 import {useModal} from "@/hooks/useModal";
 import {useVariableStore} from "@/stores/useVariableStore";
 import {useDataStore} from "@/stores/useDataStore";
@@ -20,7 +24,141 @@ import {analyzeFactor} from "@/components/Modals/Analyze/dimension-reduction/fac
 import {clearFormData, getFormData, saveFormData} from "@/hooks/useIndexedDB";
 import {toast} from "sonner";
 
-export const FactorContainer = ({ onClose }: FactorContainerProps) => {
+interface FactorContentProps {
+    isMainOpen: boolean;
+    setIsMainOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    isValueOpen: boolean;
+    setIsValueOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    isDescriptivesOpen: boolean;
+    setIsDescriptivesOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    isExtractionOpen: boolean;
+    setIsExtractionOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    isRotationOpen: boolean;
+    setIsRotationOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    isScoresOpen: boolean;
+    setIsScoresOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    isOptionsOpen: boolean;
+    setIsOptionsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    updateFormData: <T extends keyof FactorType>(
+        section: T,
+        field: keyof FactorType[T],
+        value: unknown
+    ) => void;
+    formData: FactorType;
+    tempVariables: string[];
+    onContinue: (mainData: FactorMainType) => void;
+    onReset: () => void;
+    onClose: () => void;
+    containerType?: "dialog" | "sidebar";
+}
+
+const FactorContent = ({
+    isMainOpen,
+    setIsMainOpen,
+    isValueOpen,
+    setIsValueOpen,
+    isDescriptivesOpen,
+    setIsDescriptivesOpen,
+    isExtractionOpen,
+    setIsExtractionOpen,
+    isRotationOpen,
+    setIsRotationOpen,
+    isScoresOpen,
+    setIsScoresOpen,
+    isOptionsOpen,
+    setIsOptionsOpen,
+    updateFormData,
+    formData,
+    tempVariables,
+    onContinue,
+    onReset,
+    onClose,
+    containerType = "dialog"
+}: FactorContentProps) => {
+    return (
+        <>
+            <FactorDialog
+                isMainOpen={isMainOpen}
+                setIsMainOpen={setIsMainOpen}
+                setIsValueOpen={setIsValueOpen}
+                setIsDescriptivesOpen={setIsDescriptivesOpen}
+                setIsExtractionOpen={setIsExtractionOpen}
+                setIsRotationOpen={setIsRotationOpen}
+                setIsScoresOpen={setIsScoresOpen}
+                setIsOptionsOpen={setIsOptionsOpen}
+                updateFormData={updateFormData}
+                data={formData.main}
+                globalVariables={tempVariables}
+                onContinue={onContinue}
+                onReset={onReset}
+                containerType={containerType}
+                onClose={onClose}
+            />
+
+            {/* Value */}
+            <FactorValue
+                isValueOpen={isValueOpen}
+                setIsValueOpen={setIsValueOpen}
+                updateFormData={(field, value) =>
+                    updateFormData("value", field, value)
+                }
+                data={formData.value}
+            />
+
+            {/* Descriptives */}
+            <FactorDescriptives
+                isDescriptivesOpen={isDescriptivesOpen}
+                setIsDescriptivesOpen={setIsDescriptivesOpen}
+                updateFormData={(field, value) =>
+                    updateFormData("descriptives", field, value)
+                }
+                data={formData.descriptives}
+            />
+
+            {/* Extraction */}
+            <FactorExtraction
+                isExtractionOpen={isExtractionOpen}
+                setIsExtractionOpen={setIsExtractionOpen}
+                updateFormData={(field, value) =>
+                    updateFormData("extraction", field, value)
+                }
+                data={formData.extraction}
+            />
+
+            {/* Rotation */}
+            <FactorRotation
+                isRotationOpen={isRotationOpen}
+                setIsRotationOpen={setIsRotationOpen}
+                updateFormData={(field, value) =>
+                    updateFormData("rotation", field, value)
+                }
+                data={formData.rotation}
+            />
+
+            {/* Scores */}
+            <FactorScores
+                isScoresOpen={isScoresOpen}
+                setIsScoresOpen={setIsScoresOpen}
+                updateFormData={(field, value) =>
+                    updateFormData("scores", field, value)
+                }
+                data={formData.scores}
+            />
+
+            {/* Options */}
+            <FactorOptions
+                isOptionsOpen={isOptionsOpen}
+                setIsOptionsOpen={setIsOptionsOpen}
+                updateFormData={(field, value) =>
+                    updateFormData("options", field, value)
+                }
+                data={formData.options}
+            />
+        </>
+    );
+};
+
+export const FactorContainer = ({ onClose, containerType = "dialog" }: FactorContainerProps & Partial<BaseModalProps>) => {
     const variables = useVariableStore((state) => state.variables);
     const dataVariables = useDataStore((state) => state.data);
     const tempVariables = useMemo(
@@ -132,87 +270,73 @@ export const FactorContainer = ({ onClose }: FactorContainerProps) => {
         onClose();
     };
 
+    if (containerType === "sidebar") {
+        return (
+            <div className="h-full flex flex-col overflow-hidden bg-popover text-popover-foreground">
+                <div className="px-6 py-4 border-b border-border flex-shrink-0">
+                    <h2 className="text-[22px] font-semibold">Factor Analysis</h2>
+                </div>
+                <div className="flex-grow flex flex-col overflow-hidden">
+                    <FactorContent
+                        isMainOpen={isMainOpen}
+                        setIsMainOpen={setIsMainOpen}
+                        isValueOpen={isValueOpen}
+                        setIsValueOpen={setIsValueOpen}
+                        isDescriptivesOpen={isDescriptivesOpen}
+                        setIsDescriptivesOpen={setIsDescriptivesOpen}
+                        isExtractionOpen={isExtractionOpen}
+                        setIsExtractionOpen={setIsExtractionOpen}
+                        isRotationOpen={isRotationOpen}
+                        setIsRotationOpen={setIsRotationOpen}
+                        isScoresOpen={isScoresOpen}
+                        setIsScoresOpen={setIsScoresOpen}
+                        isOptionsOpen={isOptionsOpen}
+                        setIsOptionsOpen={setIsOptionsOpen}
+                        updateFormData={updateFormData}
+                        formData={formData}
+                        tempVariables={tempVariables}
+                        onContinue={(mainData: FactorMainType) => executeFactor(mainData)}
+                        onReset={resetFormData}
+                        onClose={onClose}
+                        containerType={containerType}
+                    />
+                </div>
+            </div>
+        );
+    }
+
     return (
         <Dialog open={isMainOpen} onOpenChange={handleClose}>
             <DialogTitle></DialogTitle>
-            <DialogContent>
-                <FactorDialog
-                    isMainOpen={isMainOpen}
-                    setIsMainOpen={setIsMainOpen}
-                    setIsValueOpen={setIsValueOpen}
-                    setIsDescriptivesOpen={setIsDescriptivesOpen}
-                    setIsExtractionOpen={setIsExtractionOpen}
-                    setIsRotationOpen={setIsRotationOpen}
-                    setIsScoresOpen={setIsScoresOpen}
-                    setIsOptionsOpen={setIsOptionsOpen}
-                    updateFormData={(field, value) =>
-                        updateFormData("main", field, value)
-                    }
-                    data={formData.main}
-                    globalVariables={tempVariables}
-                    onContinue={(mainData) => executeFactor(mainData)}
-                    onReset={resetFormData}
-                />
-
-                {/* Value */}
-                <FactorValue
-                    isValueOpen={isValueOpen}
-                    setIsValueOpen={setIsValueOpen}
-                    updateFormData={(field, value) =>
-                        updateFormData("value", field, value)
-                    }
-                    data={formData.value}
-                />
-
-                {/* Descriptives */}
-                <FactorDescriptives
-                    isDescriptivesOpen={isDescriptivesOpen}
-                    setIsDescriptivesOpen={setIsDescriptivesOpen}
-                    updateFormData={(field, value) =>
-                        updateFormData("descriptives", field, value)
-                    }
-                    data={formData.descriptives}
-                />
-
-                {/* Extraction */}
-                <FactorExtraction
-                    isExtractionOpen={isExtractionOpen}
-                    setIsExtractionOpen={setIsExtractionOpen}
-                    updateFormData={(field, value) =>
-                        updateFormData("extraction", field, value)
-                    }
-                    data={formData.extraction}
-                />
-
-                {/* Rotation */}
-                <FactorRotation
-                    isRotationOpen={isRotationOpen}
-                    setIsRotationOpen={setIsRotationOpen}
-                    updateFormData={(field, value) =>
-                        updateFormData("rotation", field, value)
-                    }
-                    data={formData.rotation}
-                />
-
-                {/* Scores */}
-                <FactorScores
-                    isScoresOpen={isScoresOpen}
-                    setIsScoresOpen={setIsScoresOpen}
-                    updateFormData={(field, value) =>
-                        updateFormData("scores", field, value)
-                    }
-                    data={formData.scores}
-                />
-
-                {/* Options */}
-                <FactorOptions
-                    isOptionsOpen={isOptionsOpen}
-                    setIsOptionsOpen={setIsOptionsOpen}
-                    updateFormData={(field, value) =>
-                        updateFormData("options", field, value)
-                    }
-                    data={formData.options}
-                />
+            <DialogContent className="max-w-4xl p-0 bg-popover text-popover-foreground border border-border shadow-md rounded-md flex flex-col max-h-[85vh]">
+                <DialogHeader className="px-6 py-4 border-b border-border flex-shrink-0">
+                    <DialogTitle className="text-[22px] font-semibold">Factor Analysis</DialogTitle>
+                </DialogHeader>
+                <div className="flex-grow flex flex-col overflow-hidden">
+                    <FactorContent
+                        isMainOpen={isMainOpen}
+                        setIsMainOpen={setIsMainOpen}
+                        isValueOpen={isValueOpen}
+                        setIsValueOpen={setIsValueOpen}
+                        isDescriptivesOpen={isDescriptivesOpen}
+                        setIsDescriptivesOpen={setIsDescriptivesOpen}
+                        isExtractionOpen={isExtractionOpen}
+                        setIsExtractionOpen={setIsExtractionOpen}
+                        isRotationOpen={isRotationOpen}
+                        setIsRotationOpen={setIsRotationOpen}
+                        isScoresOpen={isScoresOpen}
+                        setIsScoresOpen={setIsScoresOpen}
+                        isOptionsOpen={isOptionsOpen}
+                        setIsOptionsOpen={setIsOptionsOpen}
+                        updateFormData={updateFormData}
+                        formData={formData}
+                        tempVariables={tempVariables}
+                        onContinue={(mainData: FactorMainType) => executeFactor(mainData)}
+                        onReset={resetFormData}
+                        onClose={onClose}
+                        containerType={containerType}
+                    />
+                </div>
             </DialogContent>
         </Dialog>
     );

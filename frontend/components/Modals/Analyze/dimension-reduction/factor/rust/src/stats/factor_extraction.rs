@@ -79,11 +79,20 @@ pub fn extract_principal_components(
     }
 
     // Calculate explained variance
-    let total_variance: f64 = n_vars as f64; // For correlation matrix, total variance is number of variables
+    // Untuk correlation matrix: total_variance = jumlah variabel (p)
+    // Untuk covariance matrix: total_variance = sum of all eigenvalues
+    let total_variance: f64 = if config.extraction.covariance {
+        // Covariance matrix: sum of all eigenvalues represents total variance
+        eigenvalues.iter().sum()
+    } else {
+        // Correlation matrix: total variance is number of variables
+        n_vars as f64
+    };
+
     let explained_variance: Vec<f64> = eigenvalues
         .iter()
         .take(n_factors)
-        .map(|&val| (val / total_variance) * 100.0)
+        .map(|&val| if total_variance > 0.0 { (val / total_variance) * 100.0 } else { 0.0 })
         .collect();
 
     // Calculate cumulative variance
@@ -239,11 +248,17 @@ pub fn extract_principal_axis_factoring(
             }
 
             // Calculate explained variance
-            let total_variance: f64 = n_vars as f64; // For correlation matrix, total variance equals number of variables
+            let total_variance: f64 = if config.extraction.covariance {
+                // Covariance matrix: sum of all eigenvalues represents total variance
+                sorted_eigenvalues.iter().sum()
+            } else {
+                // Correlation matrix: total variance equals number of variables
+                n_vars as f64
+            };
             let explained_variance: Vec<f64> = sorted_eigenvalues
                 .iter()
                 .take(n_factors)
-                .map(|&val| (val / total_variance) * 100.0)
+                .map(|&val| if total_variance > 0.0 { (val / total_variance) * 100.0 } else { 0.0 })
                 .collect();
 
             // Calculate cumulative variance
@@ -329,11 +344,17 @@ fn extract_factors_from_adjusted_matrix(
     }
 
     // Calculate explained variance
-    let total_variance: f64 = n_vars as f64; // For correlation matrix, total variance equals number of variables
+    let total_variance: f64 = if config.extraction.covariance {
+        // Covariance matrix: sum of all eigenvalues represents total variance
+        sorted_eigenvalues.iter().sum()
+    } else {
+        // Correlation matrix: total variance equals number of variables
+        n_vars as f64
+    };
     let explained_variance: Vec<f64> = sorted_eigenvalues
         .iter()
         .take(n_factors)
-        .map(|&val| (val / total_variance) * 100.0)
+        .map(|&val| if total_variance > 0.0 { (val / total_variance) * 100.0 } else { 0.0 })
         .collect();
 
     // Calculate cumulative variance
@@ -783,17 +804,27 @@ pub fn extract_maximum_likelihood(
 
         if max_change < convergence_criterion {
             // Calculate explained variance
-            let total_variance: f64 = n_vars as f64; // Total variance is p for correlation matrix
+            let total_variance: f64 = if config.extraction.covariance {
+                // Covariance matrix: sum of all eigenvalues represents total variance
+                sorted_eigenvalues.iter().sum()
+            } else {
+                // Correlation matrix: total variance is p
+                n_vars as f64
+            };
             let explained_variance: Vec<f64> = (0..n_factors)
                 .map(
                     |j|
-                        ((new_communalities
-                            .iter()
-                            .map(|&h| h)
-                            .sum::<f64>() /
-                            total_variance) *
-                            100.0) /
-                        (n_factors as f64)
+                        if total_variance > 0.0 {
+                            ((new_communalities
+                                .iter()
+                                .map(|&h| h)
+                                .sum::<f64>() /
+                                total_variance) *
+                                100.0) /
+                            (n_factors as f64)
+                        } else {
+                            0.0
+                        }
                 )
                 .collect();
 
@@ -971,11 +1002,17 @@ pub fn extract_alpha_factoring(
             }
 
             // Calculate explained variance
-            let total_variance: f64 = h_new.iter().sum(); // Sum of communalities
+            let total_variance: f64 = if config.extraction.covariance {
+                // Covariance matrix: sum of all eigenvalues represents total variance
+                sorted_eigenvalues.iter().sum()
+            } else {
+                // Correlation matrix: use sum of communalities for alpha factoring
+                h_new.iter().sum()
+            };
             let explained_variance: Vec<f64> = sorted_eigenvalues
                 .iter()
                 .take(n_factors)
-                .map(|&val| (val / (n_vars as f64)) * 100.0)
+                .map(|&val| if total_variance > 0.0 { (val / total_variance) * 100.0 } else { 0.0 })
                 .collect();
 
             // Calculate cumulative variance
@@ -1087,9 +1124,15 @@ pub fn extract_image_factoring(
     }
 
     // Calculate explained variance
-    let total_variance = n_vars as f64; // Total variance is p for correlation matrix
+    let total_variance = if config.extraction.covariance {
+        // Covariance matrix: sum of all eigenvalues represents total variance
+        sorted_eigenvalues.iter().sum()
+    } else {
+        // Correlation matrix: total variance is p
+        n_vars as f64
+    };
     let explained_variance: Vec<f64> = (0..n_factors)
-        .map(|j| (sorted_eigenvalues[j] / total_variance) * 100.0)
+        .map(|j| if total_variance > 0.0 { (sorted_eigenvalues[j] / total_variance) * 100.0 } else { 0.0 })
         .collect();
 
     // Calculate cumulative variance

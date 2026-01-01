@@ -1,4 +1,7 @@
-import {getSlicedData, getVarDefs} from "@/hooks/useVariable";
+// Ini file Service Layer utama yang bertugas sebagai orkestrator atau jembatan antara Frontend Next.js dan logika Rust WASM
+
+
+import {getSlicedData, getVarDefs} from "@/hooks/useVariable"; // getSlicedData: Mengambil hanya data variabel yang dipilih oleh pengguna dari dataset besar di UI.
 import {FactorAnalysisType} from "@/components/Modals/Analyze/dimension-reduction/factor/types/factor-worker";
 import {transformFactorAnalysisResult} from "./factor-analysis-formatter";
 import {resultFactorAnalysis} from "./factor-analysis-output";
@@ -6,10 +9,9 @@ import init, {
     FactorAnalysis,
 } from "@/components/Modals/Analyze/dimension-reduction/factor/rust/pkg";
 
-/**
- * Sanitize variable definitions to ensure all numeric fields are properly typed
- * This prevents serialization errors where numbers are sent as strings
- */
+// Fungsi memastikan kolom seperti columnIndex, width, dan decimals benar-benar bertipe Number. 
+// Tanpa ini, jika JavaScript mengirimkan angka dalam bentuk string, Rust akan mengalami error karena Rust sangat ketat terhadap tipe data (strongly typed).
+
 function sanitizeVarDefs(varDefs: any[][]): any[][] {
     return varDefs.map((varDefGroup) =>
         varDefGroup.map((varDef: any) => ({
@@ -61,10 +63,12 @@ export async function analyzeFactor({
     console.log("slicedDataForTarget", slicedDataForTarget);
     console.log("varDefsForTarget", varDefsForTarget);
 
+    // Di dalam blok try, file ini menjalankan await init (fungsi dari paket rust/pkg yang memuat modul WebAssembly 
+    // ke dalam memori browser agar fungsi-fungsi Rust bisa dipanggil oleh JavaScript)
     try {
         await init();
         const factor = new FactorAnalysis(
-            slicedDataForTarget,
+            slicedDataForTarget, 
             slicedDataForValue,
             varDefsForTarget,
             varDefsForValue,

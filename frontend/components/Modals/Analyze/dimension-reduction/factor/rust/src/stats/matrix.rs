@@ -1,9 +1,6 @@
 use std::collections::HashMap;
-
 use nalgebra::{ DMatrix, DVector };
-
-use statrs::distribution::{StudentsT, ContinuousCDF}; // ini untuk p-value (significant value)
-
+use statrs::distribution::{StudentsT, ContinuousCDF}; // ini untuk p-value (significant value)s
 use crate::models::{
     config::FactorAnalysisConfig,
     data::AnalysisData,
@@ -319,6 +316,44 @@ pub fn calculate_inverse_covariance_matrix(
         variable_order: var_names,
         determinant,
     })
+}
+
+// Fungsi utilitas untuk menghitung rata-rata kolom
+fn calculate_mean(data: &DMatrix<f64>, col_index: usize) -> f64 {
+    let n_rows = data.nrows();
+    let sum: f64 = (0..n_rows)
+        .map(|r| data[(r, col_index)])
+        .sum();
+    sum / (n_rows as f64)
+}
+
+/// Menghitung varians mentah (sampel) untuk setiap variabel (kolom) dalam matriks data.
+pub fn calculate_raw_variances(data_matrix: &DMatrix<f64>) -> Result<Vec<f64>, String> {
+    let n_rows = data_matrix.nrows();
+    let n_cols = data_matrix.ncols();
+
+    if n_rows <= 1 {
+        return Err("Data tidak cukup untuk menghitung varians. Diperlukan minimal 2 observasi.".to_string());
+    }
+
+    let mut variances = Vec::with_capacity(n_cols);
+    let sample_divisor = n_rows as f64 - 1.0;
+
+    for c in 0..n_cols {
+        let mean = calculate_mean(data_matrix, c);
+
+        let sum_of_squares: f64 = (0..n_rows)
+            .map(|r| {
+                let diff = data_matrix[(r, c)] - mean;
+                diff.powi(2)
+            })
+            .sum();
+
+        let variance = sum_of_squares / sample_divisor;
+        variances.push(variance);
+    }
+
+    Ok(variances)
 }
 
 pub fn calculate_anti_image_matrices(
