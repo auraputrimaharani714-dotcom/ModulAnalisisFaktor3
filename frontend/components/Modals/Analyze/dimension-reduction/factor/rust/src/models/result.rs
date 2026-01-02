@@ -217,3 +217,22 @@ pub struct RotationResult {
     pub transformation_matrix: DMatrix<f64>,
     pub factor_correlations: Option<DMatrix<f64>>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PatternMatrix {
+    pub components: HashMap<String, Vec<f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct StructureMatrix {
+    pub components: HashMap<String, Vec<f64>>,
+    #[serde(rename = "variable_order")]
+    pub variable_order: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ComponentCorrelationMatrix {
+    pub correlations: Vec<Vec<f64>>,
+}
