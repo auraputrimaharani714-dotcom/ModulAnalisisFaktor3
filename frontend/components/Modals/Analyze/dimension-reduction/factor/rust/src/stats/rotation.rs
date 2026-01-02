@@ -2297,3 +2297,106 @@ pub fn calculate_component_transformation_matrix(
 
     Ok(ComponentTransformationMatrix { components })
 }
+
+use crate::models::result::{PatternMatrix, StructureMatrix, ComponentCorrelationMatrix};
+
+pub fn calculate_pattern_matrix(
+    data: &AnalysisData,
+    config: &FactorAnalysisConfig
+) -> Result<PatternMatrix, String> {
+    let (data_matrix, var_names) = extract_data_matrix(data, config)?;
+    let corr_matrix = calculate_matrix(&data_matrix, "correlation")?;
+    let extraction_result = extract_factors(&corr_matrix, config, &var_names)?;
+    let rotation_result = rotate_factors(&extraction_result, config)?;
+
+    let mut components = HashMap::new();
+    let pattern_loadings = &rotation_result.rotated_loadings;
+    let n_rows = pattern_loadings.nrows();
+    let n_cols = pattern_loadings.ncols();
+
+    for (i, var_name) in var_names.iter().enumerate() {
+        if i < n_rows {
+            let mut loadings = Vec::with_capacity(n_cols);
+
+            for j in 0..n_cols {
+                loadings.push(pattern_loadings[(i, j)]);
+            }
+
+            components.insert(var_name.clone(), loadings);
+        }
+    }
+
+    Ok(PatternMatrix {
+        components,
+        variable_order: var_names,
+    })
+}
+
+pub fn calculate_structure_matrix(
+    data: &AnalysisData,
+    config: &FactorAnalysisConfig
+) -> Result<StructureMatrix, String> {
+    let (data_matrix, var_names) = extract_data_matrix(data, config)?;
+    let corr_matrix = calculate_matrix(&data_matrix, "correlation")?;
+    let extraction_result = extract_factors(&corr_matrix, config, &var_names)?;
+    let rotation_result = rotate_factors(&extraction_result, config)?;
+
+    let pattern_loadings = &rotation_result.rotated_loadings;
+    let n_rows = pattern_loadings.nrows();
+    let n_cols = pattern_loadings.ncols();
+
+    let mut structure_loadings = pattern_loadings.clone();
+
+    if let Some(factor_correlations) = &rotation_result.factor_correlations {
+        structure_loadings = pattern_loadings * factor_correlations;
+    }
+
+    let mut components = HashMap::new();
+
+    for (i, var_name) in var_names.iter().enumerate() {
+        if i < n_rows {
+            let mut loadings = Vec::with_capacity(n_cols);
+
+            for j in 0..n_cols {
+                loadings.push(structure_loadings[(i, j)]);
+            }
+
+            components.insert(var_name.clone(), loadings);
+        }
+    }
+
+    Ok(StructureMatrix {
+        components,
+        variable_order: var_names,
+    })
+}
+
+pub fn calculate_component_correlation_matrix(
+    data: &AnalysisData,
+    config: &FactorAnalysisConfig
+) -> Result<ComponentCorrelationMatrix, String> {
+    let (data_matrix, var_names) = extract_data_matrix(data, config)?;
+    let corr_matrix = calculate_matrix(&data_matrix, "correlation")?;
+    let extraction_result = extract_factors(&corr_matrix, config, &var_names)?;
+    let rotation_result = rotate_factors(&extraction_result, config)?;
+
+    let mut correlations = Vec::new();
+
+    if let Some(factor_corrs) = &rotation_result.factor_correlations {
+        let n_cols = factor_corrs.ncols();
+
+        for i in 0..n_cols {
+            let mut row = Vec::with_capacity(n_cols);
+
+            for j in 0..n_cols {
+                row.push(factor_corrs[(i, j)]);
+            }
+
+            correlations.push(row);
+        }
+    }
+
+    Ok(ComponentCorrelationMatrix {
+        correlations,
+    })
+}
