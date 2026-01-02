@@ -773,3 +773,91 @@ pub fn create_component_transformation_matrix(
         components,
     }
 }
+
+// Create pattern matrix for oblique rotations
+pub fn create_pattern_matrix(
+    rotation_result: &RotationResult,
+    var_names: &[String]
+) -> PatternMatrix {
+    let mut components = HashMap::new();
+    let pattern_loadings = &rotation_result.rotated_loadings;
+    let n_rows = pattern_loadings.nrows();
+    let n_cols = pattern_loadings.ncols();
+
+    for (i, var_name) in var_names.iter().enumerate() {
+        if i < n_rows {
+            let mut loadings = Vec::with_capacity(n_cols);
+
+            for j in 0..n_cols {
+                loadings.push(pattern_loadings[(i, j)]);
+            }
+
+            components.insert(var_name.clone(), loadings);
+        }
+    }
+
+    PatternMatrix {
+        components,
+        variable_order: var_names.to_vec(),
+    }
+}
+
+// Create structure matrix for oblique rotations
+pub fn create_structure_matrix(
+    rotation_result: &RotationResult,
+    var_names: &[String]
+) -> StructureMatrix {
+    let pattern_loadings = &rotation_result.rotated_loadings;
+    let n_rows = pattern_loadings.nrows();
+    let n_cols = pattern_loadings.ncols();
+
+    let mut structure_loadings = pattern_loadings.clone();
+
+    if let Some(factor_correlations) = &rotation_result.factor_correlations {
+        structure_loadings = pattern_loadings * factor_correlations;
+    }
+
+    let mut components = HashMap::new();
+
+    for (i, var_name) in var_names.iter().enumerate() {
+        if i < n_rows {
+            let mut loadings = Vec::with_capacity(n_cols);
+
+            for j in 0..n_cols {
+                loadings.push(structure_loadings[(i, j)]);
+            }
+
+            components.insert(var_name.clone(), loadings);
+        }
+    }
+
+    StructureMatrix {
+        components,
+        variable_order: var_names.to_vec(),
+    }
+}
+
+// Create component correlation matrix for oblique rotations
+pub fn create_component_correlation_matrix(
+    rotation_result: &RotationResult
+) -> ComponentCorrelationMatrix {
+    let mut correlations = Vec::new();
+
+    if let Some(factor_corrs) = &rotation_result.factor_correlations {
+        let n_cols = factor_corrs.ncols();
+
+        for i in 0..n_cols {
+            let mut row = Vec::with_capacity(n_cols);
+
+            for j in 0..n_cols {
+                row.push(factor_corrs[(i, j)]);
+            }
+
+            correlations.push(row);
+        }
+    }
+
+    ComponentCorrelationMatrix {
+        correlations,
+    }
+}
