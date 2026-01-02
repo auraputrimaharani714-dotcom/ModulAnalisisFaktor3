@@ -1114,6 +1114,9 @@ impl FormatResult {
             reproduced_covariances,
             rotated_component_matrix,
             component_transformation_matrix: result.component_transformation_matrix.clone(),
+            pattern_matrix,
+            structure_matrix,
+            component_correlation_matrix: result.component_correlation_matrix.clone(),
             component_score_coefficient_matrix,
             component_score_covariance_matrix: result.component_score_covariance_matrix.clone(),
         }
