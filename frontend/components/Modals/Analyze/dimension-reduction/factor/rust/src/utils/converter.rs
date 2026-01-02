@@ -501,6 +501,7 @@
 use wasm_bindgen::JsValue;
 use serde::Serialize;
 use crate::models::result::{
+    ComponentCorrelationMatrix,
     ComponentScoreCovarianceMatrix,
     ComponentTransformationMatrix,
     CovarianceMatrix,
@@ -508,7 +509,9 @@ use crate::models::result::{
     FactorAnalysisResult,
     InverseCovarianceMatrix,
     KMOBartlettsTest,
+    PatternMatrix,
     ScreePlot,
+    StructureMatrix,
     TotalVarianceExplained,
 };
 
