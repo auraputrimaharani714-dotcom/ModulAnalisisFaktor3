@@ -1598,8 +1598,8 @@ export function transformFactorAnalysisResult(data: any): ResultJson {
         resultJson.tables.push(table);
     }
 
-    // 11. Component Transformation Matrix
-    if (data.component_transformation_matrix) {
+    // 11. Component Transformation Matrix (Orthogonal rotations only)
+    if (data.component_transformation_matrix && !data.pattern_matrix) {
         const components =
             data.component_transformation_matrix.components.length;
 
@@ -1638,6 +1638,141 @@ export function transformFactorAnalysisResult(data: any): ResultJson {
         table.rows.push({
             rowHeader: ["Rotation Method: Varimax with Kaiser Normalization."],
         });
+
+        resultJson.tables.push(table);
+    }
+
+    // 11a. Pattern Matrix (Oblique rotations only)
+    if (data.pattern_matrix) {
+        const extractedComponents =
+            data.pattern_matrix.components[0]?.values.length || 0;
+
+        const table: Table = {
+            key: "pattern_matrix",
+            title: "Pattern Matrix",
+            columnHeaders: [
+                { header: "", key: "var" },
+                {
+                    header: "Component",
+                    key: "component",
+                    children: Array.from(
+                        { length: extractedComponents },
+                        (_, i) => ({
+                            header: (i + 1).toString(),
+                            key: `component_${i + 1}`,
+                        })
+                    ),
+                },
+            ],
+            rows: [],
+        };
+
+        data.pattern_matrix.components.forEach((component: any) => {
+            const rowData: any = {
+                rowHeader: [component.variable],
+            };
+
+            component.values.forEach((value: number, index: number) => {
+                rowData[`component_${index + 1}`] = formatDisplayNumber(value);
+            });
+
+            table.rows.push(rowData);
+        });
+
+        // Add footnotes
+        table.rows.push({
+            rowHeader: ["Extraction Method: Principal Component Analysis."],
+        });
+        table.rows.push({
+            rowHeader: ["Rotation Method: Promax with Kaiser Normalization."],
+        });
+        table.rows.push({
+            rowHeader: ["a. Rotation converged in X iterations."],
+        });
+
+        resultJson.tables.push(table);
+    }
+
+    // 11b. Structure Matrix (Oblique rotations only)
+    if (data.structure_matrix) {
+        const extractedComponents =
+            data.structure_matrix.components[0]?.values.length || 0;
+
+        const table: Table = {
+            key: "structure_matrix",
+            title: "Structure Matrix",
+            columnHeaders: [
+                { header: "", key: "var" },
+                {
+                    header: "Component",
+                    key: "component",
+                    children: Array.from(
+                        { length: extractedComponents },
+                        (_, i) => ({
+                            header: (i + 1).toString(),
+                            key: `component_${i + 1}`,
+                        })
+                    ),
+                },
+            ],
+            rows: [],
+        };
+
+        data.structure_matrix.components.forEach((component: any) => {
+            const rowData: any = {
+                rowHeader: [component.variable],
+            };
+
+            component.values.forEach((value: number, index: number) => {
+                rowData[`component_${index + 1}`] = formatDisplayNumber(value);
+            });
+
+            table.rows.push(rowData);
+        });
+
+        // Add footnotes
+        table.rows.push({
+            rowHeader: ["Extraction Method: Principal Component Analysis."],
+        });
+        table.rows.push({
+            rowHeader: ["Rotation Method: Promax with Kaiser Normalization."],
+        });
+
+        resultJson.tables.push(table);
+    }
+
+    // 11c. Component Correlation Matrix (Oblique rotations only)
+    if (data.component_correlation_matrix) {
+        const components =
+            data.component_correlation_matrix.correlations.length;
+
+        const table: Table = {
+            key: "component_correlation_matrix",
+            title: "Component Correlation Matrix",
+            columnHeaders: [
+                { header: "Component", key: "component" },
+                ...Array.from({ length: components }, (_, i) => ({
+                    header: (i + 1).toString(),
+                    key: `component_${i + 1}`,
+                })),
+            ],
+            rows: [],
+        };
+
+        // Fill rows
+        for (let i = 0; i < components; i++) {
+            const rowData: any = {
+                rowHeader: [(i + 1).toString()],
+            };
+
+            for (let j = 0; j < components; j++) {
+                rowData[`component_${j + 1}`] = formatDisplayNumber(
+                    data.component_correlation_matrix.correlations[i][j]
+                );
+            }
+
+            table.rows.push(rowData);
+        }
 
         resultJson.tables.push(table);
     }
