@@ -240,6 +240,51 @@ pub fn run_analysis(
         }
     }
 
+    // Step 12a: Calculate Pattern Matrix if oblique rotation is performed
+    let mut pattern_matrix = None;
+    if !config.rotation.none && config.rotation.rotated_sol && (config.rotation.oblimin || config.rotation.promax) {
+        executed_functions.push("calculate_pattern_matrix".to_string());
+        match core::calculate_pattern_matrix(&filtered_data, config) {
+            Ok(matrix) => {
+                pattern_matrix = Some(matrix);
+            }
+            Err(e) => {
+                error_collector.add_error("calculate_pattern_matrix", &e);
+                // Continue execution despite errors for non-critical functions
+            }
+        }
+    }
+
+    // Step 12b: Calculate Structure Matrix if oblique rotation is performed
+    let mut structure_matrix = None;
+    if !config.rotation.none && config.rotation.rotated_sol && (config.rotation.oblimin || config.rotation.promax) {
+        executed_functions.push("calculate_structure_matrix".to_string());
+        match core::calculate_structure_matrix(&filtered_data, config) {
+            Ok(matrix) => {
+                structure_matrix = Some(matrix);
+            }
+            Err(e) => {
+                error_collector.add_error("calculate_structure_matrix", &e);
+                // Continue execution despite errors for non-critical functions
+            }
+        }
+    }
+
+    // Step 12c: Calculate Component Correlation Matrix if oblique rotation is performed
+    let mut component_correlation_matrix = None;
+    if !config.rotation.none && config.rotation.rotated_sol && (config.rotation.oblimin || config.rotation.promax) {
+        executed_functions.push("calculate_component_correlation_matrix".to_string());
+        match core::calculate_component_correlation_matrix(&filtered_data, config) {
+            Ok(matrix) => {
+                component_correlation_matrix = Some(matrix);
+            }
+            Err(e) => {
+                error_collector.add_error("calculate_component_correlation_matrix", &e);
+                // Continue execution despite errors for non-critical functions
+            }
+        }
+    }
+
     // Step 13: Calculate Component Score Coefficient Matrix if scores are saved
     let mut component_score_coefficient_matrix = None;
     if config.scores.save_var {
