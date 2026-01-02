@@ -1048,6 +1048,38 @@ impl FormatResult {
             }
         });
 
+        let pattern_matrix = result.pattern_matrix.as_ref().map(|matrix| {
+            let components = matrix.variable_order
+                .iter()
+                .map(|var_name| {
+                    ComponentEntry {
+                        variable: var_name.clone(),
+                        values: matrix.components.get(var_name).cloned().unwrap_or_default(),
+                    }
+                })
+                .collect();
+
+            FormattedPatternMatrix {
+                components,
+            }
+        });
+
+        let structure_matrix = result.structure_matrix.as_ref().map(|matrix| {
+            let components = matrix.variable_order
+                .iter()
+                .map(|var_name| {
+                    ComponentEntry {
+                        variable: var_name.clone(),
+                        values: matrix.components.get(var_name).cloned().unwrap_or_default(),
+                    }
+                })
+                .collect();
+
+            FormattedStructureMatrix {
+                components,
+            }
+        });
+
         let component_score_coefficient_matrix = result.component_score_coefficient_matrix
             .as_ref()
             .map(|matrix| {
