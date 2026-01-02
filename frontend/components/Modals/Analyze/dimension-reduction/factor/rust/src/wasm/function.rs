@@ -62,13 +62,13 @@ pub fn run_analysis(
     // Step 2b: Calculate Covariance Matrix if selected
     let mut covariance_matrix = None;
     if config.extraction.covariance {
-        executed_functions.push("calculate_covariance_matrix_with_determinant".to_string());
-        match core::calculate_covariance_matrix_with_determinant(&filtered_data, config) {
+        executed_functions.push("calculate_covariance_matrix".to_string());
+        match core::calculate_covariance_matrix(&filtered_data, config) {
             Ok(matrix) => {
                 covariance_matrix = Some(matrix);
             }
             Err(e) => {
-                error_collector.add_error("calculate_covariance_matrix_with_determinant", &e);
+                error_collector.add_error("calculate_covariance_matrix", &e);
                 // Continue execution despite errors for non-critical functions
             }
         }
@@ -181,17 +181,31 @@ pub fn run_analysis(
         }
     }
 
-    // Step 10: Calculate Reproduced Correlations if requested
+    // Step 10: Calculate Reproduced Correlations or Covariances based on extraction type
     let mut reproduced_correlations = None;
+    let mut reproduced_covariances = None;
     if config.descriptives.reproduced {
-        executed_functions.push("calculate_reproduced_correlations".to_string());
-        match core::calculate_reproduced_correlations(&filtered_data, config) {
-            Ok(correlations) => {
-                reproduced_correlations = Some(correlations);
+        if config.extraction.correlation {
+            executed_functions.push("calculate_reproduced_correlations".to_string());
+            match core::calculate_reproduced_correlations(&filtered_data, config) {
+                Ok(correlations) => {
+                    reproduced_correlations = Some(correlations);
+                }
+                Err(e) => {
+                    error_collector.add_error("calculate_reproduced_correlations", &e);
+                    // Continue execution despite errors for non-critical functions
+                }
             }
-            Err(e) => {
-                error_collector.add_error("calculate_reproduced_correlations", &e);
-                // Continue execution despite errors for non-critical functions
+        } else if config.extraction.covariance {
+            executed_functions.push("calculate_reproduced_covariances".to_string());
+            match core::calculate_reproduced_covariances(&filtered_data, config) {
+                Ok(covariances) => {
+                    reproduced_covariances = Some(covariances);
+                }
+                Err(e) => {
+                    error_collector.add_error("calculate_reproduced_covariances", &e);
+                    // Continue execution despite errors for non-critical functions
+                }
             }
         }
     }
@@ -282,6 +296,7 @@ pub fn run_analysis(
         total_variance_explained,
         component_matrix,
         reproduced_correlations,
+        reproduced_covariances,
         rotated_component_matrix,
         component_transformation_matrix,
         component_score_coefficient_matrix,

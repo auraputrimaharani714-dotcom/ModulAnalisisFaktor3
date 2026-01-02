@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use nalgebra::DMatrix;
-
+use super::matrix::calculate_raw_variances;
 use crate::models::{
     config::FactorAnalysisConfig,
     data::AnalysisData,
@@ -11,6 +11,7 @@ use crate::models::{
         ComponentScoreCovarianceMatrix,
         ComponentTransformationMatrix,
         ReproducedCorrelations,
+        ReproducedCovariances,
         RotatedComponentMatrix,
         RotationResult,
         ScreePlot,
@@ -21,29 +22,87 @@ use crate::models::{
 
 use super::core::{ calculate_matrix, extract_data_matrix, extract_factors, rotate_factors };
 
+// pub fn calculate_communalities(
+//     data: &AnalysisData,
+//     config: &FactorAnalysisConfig
+// ) -> Result<Communalities, String> {
+//     let (data_matrix, var_names) = extract_data_matrix(data, config)?;
+//     let corr_matrix = calculate_matrix(&data_matrix, "correlation")?;
+//     let extraction_result = extract_factors(&corr_matrix, config, &var_names)?;
+
+//     let mut initial = HashMap::new();
+//     let mut extraction = HashMap::new();
+
+//     for (i, var_name) in var_names.iter().enumerate() {
+//         initial.insert(var_name.clone(), 1.0); // Initial communalities are 1.0 for PCA
+//         if i < extraction_result.communalities.len() {
+//             extraction.insert(var_name.clone(), extraction_result.communalities[i]);
+//         }
+//     }
+
+//     Ok(Communalities {
+//         initial,
+//         extraction,
+//         variable_order: var_names,
+//     })
+// }
+
+
+// report.rs (Fokus pada pengisian Raw Initial dan Rescaled Initial)
+
+
+
 pub fn calculate_communalities(
     data: &AnalysisData,
     config: &FactorAnalysisConfig
 ) -> Result<Communalities, String> {
-    let (data_matrix, var_names) = extract_data_matrix(data, config)?;
-    let corr_matrix = calculate_matrix(&data_matrix, "correlation")?;
-    let extraction_result = extract_factors(&corr_matrix, config, &var_names)?;
 
-    let mut initial = HashMap::new();
+    let (data_matrix, var_names) = extract_data_matrix(data, config)?;
+    let is_covariance_extraction = config.extraction.covariance;
+
+    // ... (Logika penentuan matrix_type dan extract_factors tetap sama) ...
+
+    let matrix_type = if is_covariance_extraction {
+        "covariance"
+    } else if config.extraction.correlation {
+        "correlation"
+    } else {
+    // Default jika tidak ada yang dipilih (misalnya, default ke korelasi)
+        "correlation" 
+    };
+
+    let matrix_for_extraction = calculate_matrix(&data_matrix, matrix_type)?; 
+    let extraction_result = extract_factors(&matrix_for_extraction, config, &var_names)?;
+
+    // Properti baru
+    let mut raw_initial = HashMap::new();
+    let mut rescaled_initial = HashMap::new();
     let mut extraction = HashMap::new();
 
+    // 1. Hitung Raw Initial Variances (Varians Mentah)
+    let raw_variances = calculate_raw_variances(&data_matrix)?; 
     for (i, var_name) in var_names.iter().enumerate() {
-        initial.insert(var_name.clone(), 1.0); // Initial communalities are 1.0 for PCA
+
+        // Raw Initial: Selalu diisi dengan Varians Mentah, terlepas dari Extraction Method
+        raw_initial.insert(var_name.clone(), raw_variances[i]);
+
+        // Rescaled Initial: Selalu 1.0
+        rescaled_initial.insert(var_name.clone(), 1.0);
+
+        // Extraction Communality
         if i < extraction_result.communalities.len() {
             extraction.insert(var_name.clone(), extraction_result.communalities[i]);
         }
     }
 
     Ok(Communalities {
-        initial,
-        extraction,
+        raw_initial,
+        rescaled_initial,
+        extraction, // Tambahkan juga extraction communalities
         variable_order: var_names,
+        extraction_matrix_type: matrix_type.to_string(),
     })
+
 }
 
 pub fn calculate_total_variance_explained(
@@ -51,8 +110,19 @@ pub fn calculate_total_variance_explained(
     config: &FactorAnalysisConfig
 ) -> Result<TotalVarianceExplained, String> {
     let (data_matrix, var_names) = extract_data_matrix(data, config)?;
-    let corr_matrix = calculate_matrix(&data_matrix, "correlation")?;
-    let extraction_result = extract_factors(&corr_matrix, config, &var_names)?;
+
+    // Determine matrix type based on config (covariance vs correlation)
+    let is_covariance_extraction = config.extraction.covariance;
+    let matrix_type = if is_covariance_extraction {
+        "covariance"
+    } else if config.extraction.correlation {
+        "correlation"
+    } else {
+        "correlation" // Default to correlation if neither is explicitly set
+    };
+
+    let matrix = calculate_matrix(&data_matrix, matrix_type)?;
+    let extraction_result = extract_factors(&matrix, config, &var_names)?;
 
     let n_factors = extraction_result.n_factors;
     let n_variables = var_names.len();
@@ -61,12 +131,15 @@ pub fn calculate_total_variance_explained(
     let mut extraction_sums = Vec::with_capacity(n_factors);
     let mut rotation_sums = Vec::new(); // Will be filled if rotation is applied
 
-    // Get total variance (sum of eigenvalues)
-    let total_variance: f64 = if extraction_result.eigenvalues.len() < n_variables {
-        // If we have fewer eigenvalues than variables, total variance is number of variables
-        n_variables as f64
-    } else {
+    // Get total variance based on matrix type
+    // For covariance matrix: total_variance = sum of all eigenvalues
+    // For correlation matrix: total_variance = number of variables (p)
+    let total_variance: f64 = if is_covariance_extraction {
+        // Covariance matrix: sum of all eigenvalues
         extraction_result.eigenvalues.iter().sum()
+    } else {
+        // Correlation matrix: total variance is number of variables
+        n_variables as f64
     };
 
     // Fill eigenvalues for all variables
@@ -174,6 +247,7 @@ pub fn calculate_total_variance_explained(
         initial_eigenvalues,
         extraction_sums,
         rotation_sums,
+        extraction_matrix_type: matrix_type.to_string(),
     })
 }
 
@@ -182,8 +256,18 @@ pub fn calculate_component_matrix(
     config: &FactorAnalysisConfig
 ) -> Result<ComponentMatrix, String> {
     let (data_matrix, var_names) = extract_data_matrix(data, config)?;
-    let corr_matrix = calculate_matrix(&data_matrix, "correlation")?;
-    let extraction_result = extract_factors(&corr_matrix, config, &var_names)?;
+
+    // Determine matrix type based on config (covariance vs correlation)
+    let matrix_type = if config.extraction.covariance {
+        "covariance"
+    } else if config.extraction.correlation {
+        "correlation"
+    } else {
+        "correlation" // Default to correlation if neither is explicitly set
+    };
+
+    let matrix = calculate_matrix(&data_matrix, matrix_type)?;
+    let extraction_result = extract_factors(&matrix, config, &var_names)?;
 
     let mut components = HashMap::new();
 
@@ -214,12 +298,21 @@ pub fn calculate_reproduced_correlations(
     let extraction_result = extract_factors(&corr_matrix, config, &var_names)?;
 
     let n_vars = var_names.len();
+    let k = extraction_result.n_factors;
     let mut reproduced_correlation = HashMap::new();
     let mut residual = HashMap::new();
 
-    // Calculate reproduced correlation matrix
+    // Calculate reproduced correlation matrix using only k extracted components
     let loadings = &extraction_result.loadings;
-    let reproduced_matrix = loadings * loadings.transpose();
+
+    // Ensure we only use the first k columns (k extracted components)
+    let loadings_k = if k < loadings.ncols() {
+        loadings.columns(0, k).into_owned()
+    } else {
+        loadings.clone()
+    };
+
+    let reproduced_matrix = &loadings_k * loadings_k.transpose();
 
     for (i, var_name) in var_names.iter().enumerate() {
         let mut var_reproduced = HashMap::new();
@@ -256,13 +349,100 @@ pub fn calculate_reproduced_correlations(
     })
 }
 
+pub fn calculate_reproduced_covariances(
+    data: &AnalysisData,
+    config: &FactorAnalysisConfig
+) -> Result<ReproducedCovariances, String> {
+    // ALGORITHM UNTUK REPRODUCED COVARIANCE:
+    // STEP 1: Mean centering (dilakukan di extract_data_matrix)
+    // STEP 2: Covariance matrix Sigma = (Xcᵀ Xc) / (n - 1)
+    // STEP 3: Eigen decomposition Sigma = Q Λ Qᵀ, sort Λ descending
+    // STEP 4: RAW loadings (tanpa rescaling): L[i][j] = sqrt(Λ[j]) * Q[i][j]
+    // STEP 5: Reproduced covariance: Sigma_reproduced = L_k × L_k^T (using only k components)
+    // STEP 6: Residual: Sigma_residual = Sigma - Sigma_reproduced
+
+    let (data_matrix, var_names) = extract_data_matrix(data, config)?;
+
+    // STEP 2: Calculate covariance matrix (NOT correlation, NOT standardized)
+    let cov_matrix = calculate_matrix(&data_matrix, "covariance")?;
+
+    // STEP 3-4: Extract factors from covariance matrix to get RAW loadings
+    // Penting: extract_factors akan melakukan eigen decomposition pada cov_matrix
+    // dan mengembalikan loadings yang dihitung sebagai: L[i][j] = sqrt(Λ[j]) * Q[i][j]
+    let extraction_result = extract_factors(&cov_matrix, config, &var_names)?;
+
+    let n_vars = var_names.len();
+    let k = extraction_result.n_factors;
+    let mut reproduced_covariance = HashMap::new();
+    let mut residual = HashMap::new();
+
+    // STEP 5: Calculate reproduced covariance matrix using RAW loadings
+    // Reproduced = L_k × L_k^T (using only k components, not all p components)
+    let loadings = &extraction_result.loadings;
+
+    // Ensure we only use the first k columns (k extracted components)
+    let loadings_k = if k < loadings.ncols() {
+        loadings.columns(0, k).into_owned()
+    } else {
+        loadings.clone()
+    };
+
+    // Reproduced covariance: L_k × L_k^T
+    let reproduced_matrix = &loadings_k * loadings_k.transpose();
+
+    // Build result matrices
+    for (i, var_name) in var_names.iter().enumerate() {
+        let mut var_reproduced = HashMap::new();
+        let mut var_residual = HashMap::new();
+
+        for (j, other_var) in var_names.iter().enumerate() {
+            // Reproduced covariance: L_k × L_k^T
+            let repro_cov = if i < reproduced_matrix.nrows() && j < reproduced_matrix.ncols() {
+                reproduced_matrix[(i, j)]
+            } else {
+                0.0
+            };
+            var_reproduced.insert(other_var.clone(), repro_cov);
+
+            // STEP 6: Residual = observed covariance − reproduced covariance
+            let orig_cov = if i < cov_matrix.nrows() && j < cov_matrix.ncols() {
+                cov_matrix[(i, j)]
+            } else {
+                0.0
+            };
+
+            let residual_cov = orig_cov - repro_cov;
+            var_residual.insert(other_var.clone(), residual_cov);
+        }
+
+        reproduced_covariance.insert(var_name.clone(), var_reproduced);
+        residual.insert(var_name.clone(), var_residual);
+    }
+
+    Ok(ReproducedCovariances {
+        reproduced_covariance,
+        residual,
+        variable_order: var_names,
+    })
+}
+
 pub fn calculate_scree_plot(
     data: &AnalysisData,
     config: &FactorAnalysisConfig
 ) -> Result<ScreePlot, String> {
     let (data_matrix, var_names) = extract_data_matrix(data, config)?;
-    let corr_matrix = calculate_matrix(&data_matrix, "correlation")?;
-    let extraction_result = extract_factors(&corr_matrix, config, &var_names)?;
+
+    // Determine matrix type based on config (covariance vs correlation)
+    let matrix_type = if config.extraction.covariance {
+        "covariance"
+    } else if config.extraction.correlation {
+        "correlation"
+    } else {
+        "correlation" // Default to correlation if neither is explicitly set
+    };
+
+    let matrix = calculate_matrix(&data_matrix, matrix_type)?;
+    let extraction_result = extract_factors(&matrix, config, &var_names)?;
 
     let n_variables = var_names.len();
 
@@ -289,8 +469,18 @@ pub fn calculate_component_score_coefficient_matrix(
     config: &FactorAnalysisConfig
 ) -> Result<ComponentScoreCoefficientMatrix, String> {
     let (data_matrix, var_names) = extract_data_matrix(data, config)?;
-    let corr_matrix = calculate_matrix(&data_matrix, "correlation")?;
-    let extraction_result = extract_factors(&corr_matrix, config, &var_names)?;
+
+    // Determine matrix type based on config (covariance vs correlation)
+    let matrix_type = if config.extraction.covariance {
+        "covariance"
+    } else if config.extraction.correlation {
+        "correlation"
+    } else {
+        "correlation" // Default to correlation if neither is explicitly set
+    };
+
+    let matrix = calculate_matrix(&data_matrix, matrix_type)?;
+    let extraction_result = extract_factors(&matrix, config, &var_names)?;
 
     // Calculate score coefficients directly
     let loadings = &extraction_result.loadings;
@@ -302,7 +492,7 @@ pub fn calculate_component_score_coefficient_matrix(
     // Choose factor score coefficient method
     if config.scores.regression {
         // Regression method
-        match corr_matrix.clone().try_inverse() {
+        match matrix.clone().try_inverse() {
             Some(inv_matrix) => {
                 coefficients = inv_matrix * loadings;
             }
@@ -376,7 +566,7 @@ pub fn calculate_component_score_coefficient_matrix(
         }
     } else {
         // Default to regression method
-        match corr_matrix.clone().try_inverse() {
+        match matrix.clone().try_inverse() {
             Some(inv_matrix) => {
                 coefficients = inv_matrix * loadings;
             }
