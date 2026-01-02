@@ -292,6 +292,65 @@ export async function resultFactorAnalysis({
             }
 
             /*
+             * 🔄 Pattern Matrix Result 🔄
+             * */
+            const patternMatrix = findTable("pattern_matrix");
+            if (patternMatrix) {
+                const patternMatrixId = await addAnalytic(logId, {
+                    title: `Pattern Matrix`,
+                    note: "",
+                });
+
+                await addStatistic(patternMatrixId, {
+                    title: `Pattern Matrix`,
+                    description: `Pattern Matrix`,
+                    output_data: patternMatrix,
+                    components: `Pattern Matrix`,
+                });
+            }
+
+            /*
+             * 🔄 Structure Matrix Result 🔄
+             * */
+            const structureMatrix = findTable("structure_matrix");
+            if (structureMatrix) {
+                const structureMatrixId = await addAnalytic(logId, {
+                    title: `Structure Matrix`,
+                    note: "",
+                });
+
+                await addStatistic(structureMatrixId, {
+                    title: `Structure Matrix`,
+                    description: `Structure Matrix`,
+                    output_data: structureMatrix,
+                    components: `Structure Matrix`,
+                });
+            }
+
+            /*
+             * 🔄 Component Correlation Matrix Result 🔄
+             * */
+            const componentCorrelationMatrix = findTable(
+                "component_correlation_matrix"
+            );
+            if (componentCorrelationMatrix) {
+                const componentCorrelationMatrixId = await addAnalytic(
+                    logId,
+                    {
+                        title: `Component Correlation Matrix`,
+                        note: "",
+                    }
+                );
+
+                await addStatistic(componentCorrelationMatrixId, {
+                    title: `Component Correlation Matrix`,
+                    description: `Component Correlation Matrix`,
+                    output_data: componentCorrelationMatrix,
+                    components: `Component Correlation Matrix`,
+                });
+            }
+
+            /*
              * 📊 Component Score Coefficient Matrix Result 📊
              * */
             const componentScoreCoefficientMatrix = findTable(
