@@ -631,6 +631,16 @@ struct FormattedRotatedComponentMatrix {
 }
 
 #[derive(Serialize)]
+struct FormattedPatternMatrix {
+    components: Vec<ComponentEntry>,
+}
+
+#[derive(Serialize)]
+struct FormattedStructureMatrix {
+    components: Vec<ComponentEntry>,
+}
+
+#[derive(Serialize)]
 struct FormattedComponentScoreCoefficient {
     components: Vec<ComponentEntry>,
 }
