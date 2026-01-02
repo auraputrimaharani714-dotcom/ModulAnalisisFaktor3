@@ -546,6 +546,9 @@ struct FormatResult {
     reproduced_covariances: Option<FormattedReproducedCovariances>,
     rotated_component_matrix: Option<FormattedRotatedComponentMatrix>,
     component_transformation_matrix: Option<ComponentTransformationMatrix>,
+    pattern_matrix: Option<FormattedPatternMatrix>,
+    structure_matrix: Option<FormattedStructureMatrix>,
+    component_correlation_matrix: Option<ComponentCorrelationMatrix>,
     component_score_coefficient_matrix: Option<FormattedComponentScoreCoefficient>,
     component_score_covariance_matrix: Option<ComponentScoreCovarianceMatrix>,
 }
