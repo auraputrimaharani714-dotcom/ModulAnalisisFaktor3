@@ -1547,8 +1547,8 @@ export function transformFactorAnalysisResult(data: any): ResultJson {
         resultJson.tables.push(table);
     }
 
-    // 10. Rotated Component Matrix
-    if (data.rotated_component_matrix) {
+    // 10. Rotated Component Matrix (Orthogonal rotations only)
+    if (data.rotated_component_matrix && !data.pattern_matrix) {
         const extractedComponents =
             data.rotated_component_matrix.components[0]?.values.length || 0;
 
