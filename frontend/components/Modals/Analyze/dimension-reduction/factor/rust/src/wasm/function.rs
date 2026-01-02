@@ -344,6 +344,9 @@ pub fn run_analysis(
         reproduced_covariances,
         rotated_component_matrix,
         component_transformation_matrix,
+        pattern_matrix,
+        structure_matrix,
+        component_correlation_matrix,
         component_score_coefficient_matrix,
         component_score_covariance_matrix,
     };
