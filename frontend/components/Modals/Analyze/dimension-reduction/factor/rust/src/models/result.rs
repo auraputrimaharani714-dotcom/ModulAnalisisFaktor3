@@ -40,6 +40,12 @@ pub struct FactorAnalysisResult {
     pub component_score_coefficient_matrix: Option<ComponentScoreCoefficientMatrix>,
     #[serde(rename = "component_score_covariance_matrix")]
     pub component_score_covariance_matrix: Option<ComponentScoreCovarianceMatrix>,
+    #[serde(rename = "pattern_matrix")]
+    pub pattern_matrix: Option<PatternMatrix>,
+    #[serde(rename = "structure_matrix")]
+    pub structure_matrix: Option<StructureMatrix>,
+    #[serde(rename = "component_correlation_matrix")]
+    pub component_correlation_matrix: Option<ComponentCorrelationMatrix>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
