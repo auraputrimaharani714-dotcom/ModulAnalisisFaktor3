@@ -7,3 +7,4 @@ pub fn generate_loading_plots(
     // Implementation would depend on specific requirements
     Ok(())
 }
+

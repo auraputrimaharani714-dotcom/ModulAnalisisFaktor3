@@ -25,36 +25,6 @@ use crate::models::{
 
 use super::core::{ calculate_matrix, extract_data_matrix, extract_factors, rotate_factors };
 
-// pub fn calculate_communalities(
-//     data: &AnalysisData,
-//     config: &FactorAnalysisConfig
-// ) -> Result<Communalities, String> {
-//     let (data_matrix, var_names) = extract_data_matrix(data, config)?;
-//     let corr_matrix = calculate_matrix(&data_matrix, "correlation")?;
-//     let extraction_result = extract_factors(&corr_matrix, config, &var_names)?;
-
-//     let mut initial = HashMap::new();
-//     let mut extraction = HashMap::new();
-
-//     for (i, var_name) in var_names.iter().enumerate() {
-//         initial.insert(var_name.clone(), 1.0); // Initial communalities are 1.0 for PCA
-//         if i < extraction_result.communalities.len() {
-//             extraction.insert(var_name.clone(), extraction_result.communalities[i]);
-//         }
-//     }
-
-//     Ok(Communalities {
-//         initial,
-//         extraction,
-//         variable_order: var_names,
-//     })
-// }
-
-
-// report.rs (Fokus pada pengisian Raw Initial dan Rescaled Initial)
-
-
-
 pub fn calculate_communalities(
     data: &AnalysisData,
     config: &FactorAnalysisConfig

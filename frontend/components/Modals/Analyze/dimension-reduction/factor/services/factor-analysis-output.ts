@@ -1,3 +1,5 @@
+// PERBAIKAN 4/1/2026
+
 import {FactorFinalResultType} from "@/components/Modals/Analyze/dimension-reduction/factor/types/factor-worker";
 import {Table} from "@/types/Table";
 import {useResultStore} from "@/stores/useResultStore";
@@ -396,21 +398,45 @@ export async function resultFactorAnalysis({
                 });
             }
 
-            /*
-             * 📉 Scree Plot Data Result 📉
+/*
+             * 📉 Scree Plot Chart 📉
+             * Menampilkan Diagram Scree Plot
              * */
-            const screePlot = findTable("scree_plot");
-            if (screePlot) {
+            // Mengakses properti tambahan yang kita buat di formatter
+            const chartData = (formattedResult as any).screePlotChart;
+            
+            if (chartData) {
+                // Buat container analitik baru khusus untuk plot (opsional, bisa digabung)
+                const screeChartId = await addAnalytic(logId, {
+                    title: `Scree Plot`,
+                    note: "",
+                });
+
+                await addStatistic(screeChartId, {
+                    title: `Scree Plot`,
+                    description: `Eigenvalues vs Component Number`,
+                    output_data: JSON.stringify(chartData),
+                    components: "ScreePlot", 
+                });
+            }
+
+
+        /*
+             * 📋 Scree Plot Data Table📋
+             * Menampilkan data tabel di bawah chart
+             * */
+            const screePlotTable = findTable("scree_plot");
+            if (screePlotTable) {
                 const screePlotId = await addAnalytic(logId, {
-                    title: `Scree Plot Data`,
+                    title: `Scree Plot Data Table`,
                     note: "",
                 });
 
                 await addStatistic(screePlotId, {
                     title: `Scree Plot Data`,
-                    description: `Scree Plot Data`,
-                    output_data: screePlot,
-                    components: `Scree Plot Data`,
+                    description: `Table of Eigenvalues`,
+                    output_data: screePlotTable,
+                    components: `Scree Plot Data`, // Menggunakan renderer Tabel default
                 });
             }
         };
