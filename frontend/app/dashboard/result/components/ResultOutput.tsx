@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/card";
 import dynamic from "next/dynamic";
 import { useResultStore } from "@/stores/useResultStore";
 import GeneralChartContainer from "@/components/Output/Chart/GeneralChartContainer";
+import { ScreePlot } from "@/components/Modals/Analyze/dimension-reduction/factor/charts/ScreePlot";
+
 const TiptapEditor = dynamic(
   () => import("@/components/Output/Editor/TiptapEditor"),
   {
@@ -233,6 +235,12 @@ const ResultOutput: React.FC = () => {
                                       <GeneralChartContainer
                                         data={stat.output_data}
                                       />
+                                    </div>
+                                  );
+                                } else if (parsedData.component_numbers && parsedData.eigenvalues) {
+                                  return (
+                                    <div data-testid={`result-scree-plot-${stat.id}`} className="flex justify-center">
+                                      <ScreePlot data={parsedData} />
                                     </div>
                                   );
                                 } else if (parsedData.text) {
